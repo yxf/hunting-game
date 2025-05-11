@@ -15,6 +15,7 @@ const links: { label: string; path: string }[] = [
   { label: 'Counter Program', path: '/counter' },
   { label: 'Hunter Minting', path: '/hunter-minting' },
   { label: 'Bears Market', path: '/bears-market' },
+  { label: 'Hunt', path: '/hunt' },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
