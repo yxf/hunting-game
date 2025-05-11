@@ -11,12 +11,11 @@ export const metadata = {
 
 const links: { label: string; path: string }[] = [
   { label: 'Game Intro', path: '/game-intro' },
-  { label: 'Account', path: '/account' },
-  { label: 'Clusters', path: '/clusters' },
-  { label: 'Counter Program', path: '/counter' },
   { label: 'Hunter Minting', path: '/hunter-minting' },
   { label: 'Bears Market', path: '/bears-market' },
   { label: 'Hunt', path: '/hunt' },
+  { label: 'Account', path: '/account' },
+  // { label: 'Clusters', path: '/clusters' },
 ]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
