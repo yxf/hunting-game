@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AppHero } from '../ui/ui-layout'
+import Image from 'next/image'
 
 type HunterNFT = {
   id: string;
@@ -76,7 +77,26 @@ export default function HuntFeature() {
   }
   
   return (
-    <div>
+    <>
+      <style jsx global>{`
+        .hunting-page {
+          position: relative;
+          z-index: 0;
+        }
+        .hunting-page::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url('/assets/hunting.png');
+          background-size: cover;
+          background-position: center;
+          z-index: -1;
+        }
+      `}</style>
+    <div className="hunting-page">
       <AppHero 
         title={`You are Hunter ${hunterCount > 0 ? `× ${hunterCount}` : ''}`}
         subtitle={`Hunt some bears. Today you have ${huntingTimes} time left today.`} 
@@ -166,5 +186,6 @@ export default function HuntFeature() {
         )}
       </div>
     </div>
+    </>
   )
 }
