@@ -74,15 +74,6 @@ export default function GameIntroFeature() {
             </div>
 
             <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4 text-center">How to Play</h2>
-              <ol className="list-decimal list-inside space-y-3 text-lg">
-                <li>Mint your Hunter NFT from the Hunter Minting page</li>
-                <li>Visit the Bears Market to buy or sell bears</li>
-                <li>Go to the Hunt page to start hunting the bears if you hold 1 or more Hunter NFTs</li>
-              </ol>
-            </div>
-
-            <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-center">Game Mechanics</h2>
               <div className="space-y-6">
                 <div>
