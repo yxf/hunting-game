@@ -66,7 +66,7 @@ export default function BearsMarketFeature() {
     <div className="bears-market-page">
       <AppHero 
         title="Buy/Sell your Bears" 
-        subtitle="" 
+        subtitle="in BEAR x SOL Pool" 
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
