@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AppHero } from '../ui/ui-layout'
+import Image from 'next/image'
 
 export default function BearsMarketFeature() {
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
@@ -43,14 +44,33 @@ export default function BearsMarketFeature() {
   }
 
   return (
-    <div>
+    <>
+      <style jsx global>{`
+        .bears-market-page {
+          position: relative;
+          z-index: 0;
+        }
+        .bears-market-page::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url('/assets/bears.png');
+          background-size: cover;
+          background-position: center;
+          z-index: -1;
+        }
+      `}</style>
+    <div className="bears-market-page">
       <AppHero 
         title="Buy/Sell your Bears" 
         subtitle="" 
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
-        <div className="bg-base-100 rounded-lg p-6">
+        <div className="bg-base-200 bg-opacity-60 rounded-lg p-6 backdrop-blur-sm">
           {/* Tab buttons */}
           <div className="tabs tabs-boxed mb-6">
             <button 
@@ -99,5 +119,6 @@ export default function BearsMarketFeature() {
         </div>
       </div>
     </div>
+    </>
   )
 }
