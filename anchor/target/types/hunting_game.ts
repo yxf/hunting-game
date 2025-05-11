@@ -14,6 +14,120 @@ export type HuntingGame = {
   },
   "instructions": [
     {
+      "name": "buyBear",
+      "discriminator": [
+        110,
+        148,
+        42,
+        182,
+        190,
+        227,
+        150,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "paidSolAmount",
+          "type": "u64"
+        },
+        {
+          "name": "minReceivedBearAmount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
       "name": "initialize",
       "discriminator": [
         175,
@@ -50,6 +164,29 @@ export type HuntingGame = {
                   97,
                   116,
                   101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
                 ]
               }
             ]
@@ -203,14 +340,6 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "metadataAccount",
-          "writable": true
-        },
-        {
-          "name": "masterEditionAccount",
-          "writable": true
-        },
-        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         },
@@ -223,20 +352,11 @@ export type HuntingGame = {
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
         },
         {
-          "name": "tokenMetadataProgram",
-          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
-        },
-        {
           "name": "rent",
           "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
-      "args": [
-        {
-          "name": "uri",
-          "type": "string"
-        }
-      ]
+      "args": []
     },
     {
       "name": "mintHunter",
@@ -280,8 +400,27 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "authority",
-          "writable": true
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "hunterMint",
@@ -296,35 +435,18 @@ export type HuntingGame = {
                   110,
                   116,
                   101,
-                  114
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "hunterId"
-              }
-            ]
-          }
-        },
-        {
-          "name": "hunter",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  104,
-                  117,
+                  114,
+                  95,
+                  109,
+                  105,
                   110,
-                  116,
-                  101,
-                  114
+                  116
                 ]
               },
               {
                 "kind": "account",
-                "path": "hunterMint"
+                "path": "game_state.hunters_minted.checked_add(1)",
+                "account": "gameState"
               }
             ]
           }
@@ -420,12 +542,27 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "metadataAccount",
-          "writable": true
-        },
-        {
-          "name": "masterEditionAccount",
-          "writable": true
+          "name": "hunter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hunterMint"
+              }
+            ]
+          }
         },
         {
           "name": "tokenProgram",
@@ -434,10 +571,6 @@ export type HuntingGame = {
         {
           "name": "associatedTokenProgram",
           "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "tokenMetadataProgram",
-          "address": "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
         },
         {
           "name": "systemProgram",
@@ -449,6 +582,124 @@ export type HuntingGame = {
         }
       ],
       "args": []
+    },
+    {
+      "name": "sellBear",
+      "discriminator": [
+        245,
+        75,
+        165,
+        160,
+        46,
+        117,
+        184,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "sellerBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "sendBearAmount",
+          "type": "u64"
+        },
+        {
+          "name": "minReceivedSolAmount",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -476,6 +727,19 @@ export type HuntingGame = {
         78,
         81,
         220
+      ]
+    },
+    {
+      "name": "userBearBalance",
+      "discriminator": [
+        141,
+        255,
+        39,
+        8,
+        132,
+        25,
+        45,
+        166
       ]
     }
   ],
@@ -548,6 +812,26 @@ export type HuntingGame = {
           },
           {
             "name": "huntRate",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "userBearBalance",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "free",
+            "type": "u64"
+          },
+          {
+            "name": "staked",
             "type": "u64"
           }
         ]

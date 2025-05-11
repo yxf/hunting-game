@@ -1,6 +1,7 @@
 #![allow(clippy::result_large_err)]
 use anchor_lang::solana_program::system_instruction;
 use anchor_lang::solana_program::program::invoke;
+use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::prelude::*;
 
 use anchor_spl::token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount};
@@ -20,12 +21,13 @@ declare_id!("EQCmne3t4y6MA3LXjPE1m6J698QKVbDrbraVZfPSzFHy");
 
 const ADMIN_PUBKEY: Pubkey = pubkey!("88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf");
 
+const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
 
 #[program]
 pub mod hunting_game {
   use super::*;
 
-  pub fn initialize(ctx: Context<InitializeGameState>, uri: String) -> Result<()> {
+  pub fn initialize(ctx: Context<InitializeGameState>) -> Result<()> {
     if ctx.accounts.game_state.game_initialized {
       return Err(ErrorCode::GameAlreadyInitialized.into());
     }
@@ -53,56 +55,55 @@ pub mod hunting_game {
 
     mint_to(cpi_context, 1)?;
 
-    let cpi_context = CpiContext::new(
-      ctx.accounts.token_metadata_program.to_account_info(),
-      CreateMetadataAccountsV3 {
-          metadata: ctx.accounts.metadata_account.to_account_info(),
-          mint: ctx.accounts.hunter_collection_mint.to_account_info(),
-          mint_authority: ctx.accounts.admin.to_account_info(),
-          update_authority: ctx.accounts.admin.to_account_info(),
-          payer: ctx.accounts.admin.to_account_info(),
-          system_program: ctx.accounts.system_program.to_account_info(),
-          rent: ctx.accounts.rent.to_account_info(),
-      }
-    );
+    // let cpi_context = CpiContext::new(
+    //   ctx.accounts.token_metadata_program.to_account_info(),
+    //   CreateMetadataAccountsV3 {
+    //       metadata: ctx.accounts.metadata_account.to_account_info(),
+    //       mint: ctx.accounts.hunter_collection_mint.to_account_info(),
+    //       mint_authority: ctx.accounts.admin.to_account_info(),
+    //       update_authority: ctx.accounts.admin.to_account_info(),
+    //       payer: ctx.accounts.admin.to_account_info(),
+    //       system_program: ctx.accounts.system_program.to_account_info(),
+    //       rent: ctx.accounts.rent.to_account_info(),
+    //   }
+    // );
 
-    let data_v2 = DataV2 {
-        name: "Hunter".to_string(),
-        symbol: "Hunter".to_string(),
-        uri: uri,
-        seller_fee_basis_points: 0,
-        creators: None,
-        collection: None,
-        uses: None,
-    };
+    // let data_v2 = DataV2 {
+    //     name: "Hunter".to_string(),
+    //     symbol: "Hunter".to_string(),
+    //     uri: uri,
+    //     seller_fee_basis_points: 0,
+    //     creators: None,
+    //     collection: None,
+    //     uses: None,
+    // };
 
-    create_metadata_accounts_v3(cpi_context, data_v2, false, true, None)?;
+    // create_metadata_accounts_v3(cpi_context, data_v2, false, true, None)?;
 
     // create master edition account
-    let cpi_context = CpiContext::new(
-        ctx.accounts.token_metadata_program.to_account_info(),
-        CreateMasterEditionV3 {
-            edition: ctx.accounts.master_edition_account.to_account_info(),
-            mint: ctx.accounts.hunter_collection_mint.to_account_info(),
-            update_authority: ctx.accounts.admin.to_account_info(),
-            mint_authority: ctx.accounts.admin.to_account_info(),
-            payer: ctx.accounts.admin.to_account_info(),
-            metadata: ctx.accounts.metadata_account.to_account_info(),
-            token_program: ctx.accounts.token_program.to_account_info(),
-            system_program: ctx.accounts.system_program.to_account_info(),
-            rent: ctx.accounts.rent.to_account_info(),
-        },
-    );
+    // let cpi_context = CpiContext::new(
+    //     ctx.accounts.token_metadata_program.to_account_info(),
+    //     CreateMasterEditionV3 {
+    //         edition: ctx.accounts.master_edition_account.to_account_info(),
+    //         mint: ctx.accounts.hunter_collection_mint.to_account_info(),
+    //         update_authority: ctx.accounts.admin.to_account_info(),
+    //         mint_authority: ctx.accounts.admin.to_account_info(),
+    //         payer: ctx.accounts.admin.to_account_info(),
+    //         metadata: ctx.accounts.metadata_account.to_account_info(),
+    //         token_program: ctx.accounts.token_program.to_account_info(),
+    //         system_program: ctx.accounts.system_program.to_account_info(),
+    //         rent: ctx.accounts.rent.to_account_info(),
+    //     },
+    // );
 
-    create_master_edition_v3(cpi_context, None)?;
+    // create_master_edition_v3(cpi_context, None)?;
 
     Ok(())
   }
 
 
   pub fn mint_hunter(ctx: Context<MintHunter>) -> Result<()> {
-
-    if ctx.accounts.hunter_mint.supply == 0 {
+    if ctx.accounts.hunter_mint.supply == 1 {
       return Err(ErrorCode::GameAlreadyInitialized.into());
     }
     
@@ -124,18 +125,18 @@ pub mod hunting_game {
 
     mint_to(cpi_context, 1)?;
 
-    const sol_amount: u64 = 1 * 1_000_000_000; // 1 SOL
+    const sol_amount: u64 = 1 * 1_000_000_00; // 0.1 SOL
 
     let ix = system_instruction::transfer(
       &ctx.accounts.signer.key(),
-      &ctx.accounts.game_state.key(),
-      sol_amount, // 1 SOL
+      &ctx.accounts.game_vault.key(),
+      sol_amount, 
     );
-    invoke(  
+    invoke(
       &ix, 
       &[
         ctx.accounts.signer.to_account_info(),
-        ctx.accounts.game_state.to_account_info(),
+        ctx.accounts.game_vault.to_account_info(),
         ctx.accounts.system_program.to_account_info(),
       ],
     )?;
@@ -143,91 +144,106 @@ pub mod hunting_game {
     ctx.accounts.game_state.hunters_minted = ctx.accounts.game_state.hunters_minted.checked_add(1).unwrap();
     ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(sol_amount).unwrap();
 
-    let cpi_context = CpiContext::new(
-      ctx.accounts.token_metadata_program.to_account_info(),
-      CreateMetadataAccountsV3 {
-          metadata: ctx.accounts.metadata_account.to_account_info(),
-          mint: ctx.accounts.hunter_mint.to_account_info(),
-          mint_authority: ctx.accounts.authority.to_account_info(),
-          update_authority: ctx.accounts.authority.to_account_info(),
-          payer: ctx.accounts.signer.to_account_info(),
-          system_program: ctx.accounts.system_program.to_account_info(),
-          rent: ctx.accounts.rent.to_account_info(),
-      },
-    );
+    // let cpi_context = CpiContext::new(
+    //   ctx.accounts.token_metadata_program.to_account_info(),
+    //   CreateMetadataAccountsV3 {
+    //       metadata: ctx.accounts.metadata_account.to_account_info(),
+    //       mint: ctx.accounts.hunter_mint.to_account_info(),
+    //       mint_authority: ctx.accounts.authority.to_account_info(),
+    //       update_authority: ctx.accounts.authority.to_account_info(),
+    //       payer: ctx.accounts.signer.to_account_info(),
+    //       system_program: ctx.accounts.system_program.to_account_info(),
+    //       rent: ctx.accounts.rent.to_account_info(),
+    //   },
+    // );
     
-    let data_v2 = DataV2 {
-        name: "Hunter".to_string(),
-        symbol: format!("Hunter #{}", hunter_id),
-        uri: "uri".to_string(),
-        seller_fee_basis_points: 0,
-        creators: None,
-        collection: Some(Collection {
-            verified: true,
-            key: ctx.accounts.game_state.hunter_collection_mint,
-        }),
-        uses: None,
-    };
+    // let data_v2 = DataV2 {
+    //     name: "Hunter".to_string(),
+    //     symbol: format!("Hunter #{}", hunter_id),
+    //     uri: "uri".to_string(),
+    //     seller_fee_basis_points: 0,
+    //     creators: None,
+    //     collection: Some(Collection {
+    //         verified: true,
+    //         key: ctx.accounts.game_state.hunter_collection_mint,
+    //     }),
+    //     uses: None,
+    // };
 
-    create_metadata_accounts_v3(cpi_context, data_v2, false, false, None)?;
+    // create_metadata_accounts_v3(cpi_context, data_v2, false, false, None)?;
 
-    ctx.accounts.hunter.token_id = hunter_id;
-
-    let clock = Clock::get()?;
-    let random_seed = u64::from_le_bytes(
-        clock
-        .slot
-        .to_le_bytes()[0..8]
-        .try_into()
-        .unwrap(),
-    );
-
-    ctx.accounts.hunter.hunt_rate = 100 + (random_seed % 100);
+    // ctx.accounts.hunter.token_id = hunter_id;
+    // let clock = Clock::get()?;
+    // let random_seed = u64::from_le_bytes(
+    //     clock
+    //     .slot
+    //     .to_le_bytes()[0..8]
+    //     .try_into()
+    //     .unwrap(),
+    // );
+    // ctx.accounts.hunter.hunt_rate = 100 + (random_seed % 100);
 
     Ok(())
   }
 
-  // pub fn buy_bear(ctx: Context<BuyBear>, paid_sol_amount: u64, min_received_bear_amount: 64) -> Result<()> {
+  pub fn buy_bear(ctx: Context<BuyBear>, paid_sol_amount: u64, min_received_bear_amount: u64) -> Result<()> {
+    let ix = system_instruction::transfer(
+      &ctx.accounts.signer.key(),
+      &ctx.accounts.game_vault.key(),
+      paid_sol_amount,
+    );
+    invoke(  
+      &ix, 
+      &[
+        ctx.accounts.signer.to_account_info(),
+        ctx.accounts.game_vault.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+      ],
+    )?;
 
-  //   let ix = system_instruction::transfer(
-  //     &ctx.accounts.signer.key(),
-  //     &ctx.accounts.game_state.key(),
-  //     paid_sol_amount,
-  //   );
-  //   invoke(  
-  //     &ix, 
-  //     &[
-  //       ctx.accounts.signer.to_account_info(),
-  //       ctx.accounts.game_state.to_account_info(),
-  //       ctx.accounts.system_program.to_account_info(),
-  //     ],
-  //   )?;
 
-  //   ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(paid_sol_amount).unwrap();
+    ctx.accounts.user_bear_balance.user = ctx.accounts.signer.key();
 
-  //   Ok(())
-  // }
+    let received_bear_amount = 100_000_000;
+    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(received_bear_amount).unwrap();
 
-  // pub fn sell_bear(ctx: Context<BuyBear>, send_bear_amount: u64, min_received_sol_amount: 64) -> Result<()> {
+    // mock lp_bear_balance 100000000000
+    ctx.accounts.game_state.lp_bear_balance = LAMPORTS_PER_SOL * 10000;
 
-  //   let ix = system_instruction::transfer(
-  //     &ctx.accounts.game_state.key(),
-  //     &ctx.accounts.signer.key(),
-  //     paid_sol_amount,
-  //   );
-  //   invoke(
-  //     &ix, 
-  //     &[
-  //       ctx.accounts.game_state.to_account_info(),
-  //       ctx.accounts.signer.to_account_info(),
-  //       ctx.accounts.system_program.to_account_info(),
-  //     ],
-  //   )?;
+    ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(paid_sol_amount).unwrap();
+    ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_sub(received_bear_amount).unwrap();
 
-  //   ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_add(send_bear_amount).unwrap();
+    Ok(())
+  }
 
-  //   Ok(())
-  // }
+  pub fn sell_bear(ctx: Context<SellBear>, send_bear_amount: u64, min_received_sol_amount: u64) -> Result<()> {
+    let received_sol_amount = LAMPORTS_PER_SOL / 10;
+    
+    let bump = ctx.bumps.game_vault;
+    let signer_seeds: &[&[&[u8]]] = &[&[b"game_vault", &[bump]]];
+
+    let ix = system_instruction::transfer(
+      &ctx.accounts.game_vault.key(),
+      &ctx.accounts.signer.key(),
+      received_sol_amount,
+    );
+
+    invoke_signed(
+      &ix, 
+      &[
+        ctx.accounts.game_vault.to_account_info(),
+        ctx.accounts.signer.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+      ],
+      signer_seeds
+    )?;
+
+    
+    ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_add(send_bear_amount).unwrap();
+    ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_sub(received_sol_amount).unwrap();
+
+    Ok(())
+  }
 
 
 
@@ -294,7 +310,18 @@ pub struct InitializeGameState<'info> {
   #[account(
     init,
     payer = admin,
-    space = 8 + Mint::LEN,
+    seeds=[b"game_vault"],
+    bump,
+    space = 8
+  )]
+  /// CHECK: This is safe as it's just a PDA used as vault
+  game_vault: AccountInfo<'info>,
+
+  #[account(
+    init_if_needed,
+    payer = admin,
+    mint::authority = bear_mint,
+    mint::decimals = 9,
     seeds = [b"bear_mint"],
     bump
   )]
@@ -318,31 +345,29 @@ pub struct InitializeGameState<'info> {
   )]
   pub associated_token_account: Account<'info, TokenAccount>,
 
-  #[account(
-    mut,
-    address = MetadataAccount::find_pda(&hunter_collection_mint.key()).0
-  )]
-  /// CHECK: This is safe as it's just a PDA used for signing
-  pub metadata_account: AccountInfo<'info>,
+  // #[account(
+  //   mut,
+  //   address = MetadataAccount::find_pda(&hunter_collection_mint.key()).0
+  // )]
+  // /// CHECK: This is safe as it's just a PDA used for signing
+  // pub metadata_account: AccountInfo<'info>,
 
-  #[account(
-    mut,
-    address = MasterEdition::find_pda(&hunter_collection_mint.key()).0
-  )]
-  /// CHECK: This is safe as it's just a PDA used for signing
-  pub master_edition_account: AccountInfo<'info>,
+  // #[account(
+  //   mut,
+  //   address = MasterEdition::find_pda(&hunter_collection_mint.key()).0
+  // )]
+  // /// CHECK: This is safe as it's just a PDA used for signing
+  // pub master_edition_account: AccountInfo<'info>,
 
   pub system_program: Program<'info, System>,
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
-  pub token_metadata_program: Program<'info, Metadata>,
   pub rent: Sysvar<'info, Rent>,
 }
 
 
 
 #[derive(Accounts)]
-#[instruction(hunter_id: u64)]
 pub struct MintHunter<'info> {
   #[account(mut)]
   pub signer: Signer<'info>,
@@ -356,30 +381,29 @@ pub struct MintHunter<'info> {
 
   #[account(
     mut,
-    constraint = game_state.authority == authority.key()
+    seeds=[b"game_vault"],
+    bump
   )]
-  /// CHECK: This is safe as it's just a PDA used to check authority
-  pub authority: AccountInfo<'info>,
+  /// CHECK: This is safe as it's just a PDA used as vault
+  game_vault: AccountInfo<'info>,
+
+  // #[account(
+  //   mut,
+  //   constraint = game_state.authority == authority.key()
+  // )]
+  // /// CHECK: This is safe as it's just a PDA used to check authority
+  // pub authority: AccountInfo<'info>,
 
   #[account(
       init_if_needed,
       payer = signer,
       mint::decimals = 0,
       mint::authority = hunter_mint,
-      seeds = [b"hunter".as_ref(), hunter_id.to_le_bytes().as_ref()],
+      seeds = [b"hunter_mint".as_ref(), game_state.hunters_minted.checked_add(1).unwrap().to_le_bytes().as_ref()],
       bump
   )]
   pub hunter_mint: Account<'info, Mint>, // Hunter NFT
 
-  #[account(
-    init_if_needed,
-    space = 8 + Hunter::INIT_SPACE,
-    payer = signer,
-    seeds = [b"hunter".as_ref(), hunter_mint.key().as_ref()],
-    bump
-  )]
-  pub hunter: Account<'info, Hunter>,
-  
   #[account(
     init_if_needed,
     payer = signer,
@@ -389,22 +413,95 @@ pub struct MintHunter<'info> {
   pub associated_token_account: Account<'info, TokenAccount>,
 
   #[account(
-    mut,
-    address = MetadataAccount::find_pda(&hunter_mint.key()).0,
+    init_if_needed,
+    space = 8 + Hunter::INIT_SPACE,
+    payer = signer,
+    seeds = [b"hunter".as_ref(), hunter_mint.key().as_ref()],
+    bump
   )]
-  /// CHECK: This is safe as it's just a PDA used for signing
-  pub metadata_account: AccountInfo<'info>,
+  pub hunter: Account<'info, Hunter>,
 
-  #[account(
-    mut,
-    address = MasterEdition::find_pda(&hunter_mint.key()).0,
-  )]
-  /// CHECK: This is safe as it's just a PDA used for signing
-  pub master_edition_account: AccountInfo<'info>,
+
+  // #[account(
+  //   mut,
+  //   address = MetadataAccount::find_pda(&hunter_mint.key()).0,
+  // )]
+  // /// CHECK: This is safe as it's just a PDA used for signing
+  // pub metadata_account: AccountInfo<'info>,
+
+  // #[account(
+  //   mut,
+  //   address = MasterEdition::find_pda(&hunter_mint.key()).0,
+  // )]
+  // /// CHECK: This is safe as it's just a PDA used for signing
+  // pub master_edition_account: AccountInfo<'info>,
 
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
-  pub token_metadata_program: Program<'info, Metadata>,
+  // pub token_metadata_program: Program<'info, Metadata>,
+  pub system_program: Program<'info, System>,
+  pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+pub struct BuyBear<'info> {
+  #[account(mut)]
+  pub signer: Signer<'info>,
+
+  #[account(
+    mut,
+    seeds = [b"game_state"],
+    bump
+  )]
+  pub game_state: Account<'info, GameState>,
+
+  #[account(
+    mut,
+    seeds=[b"game_vault"],
+    bump
+  )]
+  /// CHECK: This is safe as it's just a PDA used as vault
+  game_vault: AccountInfo<'info>,
+
+  #[account(
+    init_if_needed,
+    space = 8 + UserBearBalance::INIT_SPACE,
+    payer = signer,
+    seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+    bump
+  )]
+  pub user_bear_balance: Account<'info, UserBearBalance>,
+  
+  pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SellBear<'info> {
+  #[account(mut)]
+  pub signer: Signer<'info>,
+
+  #[account(
+    mut,
+    seeds = [b"game_state"],
+    bump
+  )]
+  pub game_state: Account<'info, GameState>,
+
+  #[account(
+    mut,
+    seeds = [b"game_vault"],
+    bump
+  )]
+  /// CHECK: This is safe as it's just a PDA used as sol vault
+  game_vault: AccountInfo<'info>,
+
+  #[account(
+    mut,
+    seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+    bump
+  )]
+  pub seller_bear_balance: Account<'info, UserBearBalance>,
+  
   pub system_program: Program<'info, System>,
   pub rent: Sysvar<'info, Rent>,
 }
@@ -504,7 +601,7 @@ pub struct GameState {
 
 #[account]
 #[derive(InitSpace)]
-pub struct UserBalance {
+pub struct UserBearBalance {
     pub user: Pubkey,
     pub free: u64,
     pub staked: u64,

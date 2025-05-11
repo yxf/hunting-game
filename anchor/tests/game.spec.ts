@@ -3,21 +3,65 @@ import * as os from 'os';
 
 import * as anchor from '@coral-xyz/anchor'
 import {Program} from '@coral-xyz/anchor'
-import {Keypair} from '@solana/web3.js'
-import { getAssociatedTokenAddress } from "@solana/spl-token";
+import {Keypair, PublicKey, Transaction, LAMPORTS_PER_SOL} from '@solana/web3.js'
+// import { Connection, LAMPORTS_PER_SOL, clusterApiUrl } from "@solana/web3.js";
+import { getAssociatedTokenAddress, createMint, getMint, getAccount } from "@solana/spl-token";
+// import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
 
 import {
-	findMasterEditionPda,
-	findMetadataPda,
-	mplTokenMetadata,
-	MPL_TOKEN_METADATA_PROGRAM_ID,
+	// findMasterEditionPda,
+	// findMetadataPda,
+	// mplTokenMetadata,
+	MPL_TOKEN_METADATA_PROGRAM_ID as MPL_TOKEN_METADATA_PROGRAM_ID_2,
 } from "@metaplex-foundation/mpl-token-metadata";
 
+// import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
+// import { publicKey } from "@metaplex-foundation/umi";
+
+import {
+	TOKEN_PROGRAM_ID,
+	ASSOCIATED_TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
 import {HuntingGame} from '../target/types/hunting_game'
 
-describe('counter', () => {
+export const MPL_TOKEN_METADATA_PROGRAM_ID = new PublicKey(
+  "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
+);
+
+export async function findMasterEditionPda(
+  mint: PublicKey,
+  programId: PublicKey = MPL_TOKEN_METADATA_PROGRAM_ID
+): Promise<[PublicKey, number]> {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      programId.toBuffer(),
+      mint.toBuffer(),
+      Buffer.from("edition"),
+    ],
+    programId
+  );
+}
+
+export async function findMetadataPda(
+  mint: PublicKey,
+  programId: PublicKey = MPL_TOKEN_METADATA_PROGRAM_ID
+): Promise<[PublicKey, number]> {
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("metadata"),
+      programId.toBuffer(),
+      mint.toBuffer(),
+    ],
+    programId
+  );
+}
+
+
+describe('HuntingGame', () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env()
+
   anchor.setProvider(provider)
   const payer = provider.wallet as anchor.Wallet
   const homeDir = os.homedir();
@@ -28,13 +72,31 @@ describe('counter', () => {
 
 
   it('Initialize game state', async () => {
+
+    console.log("program", program.programId.toBase58());
+
     const [gameState] = await anchor.web3.PublicKey.findProgramAddressSync(
       [Buffer.from("game_state")],
       program.programId
     );
 
-    const [bearMint] = await anchor.web3.PublicKey.findProgramAddressSync(
-      [Buffer.from("game_state")],
+    const [gameVault] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_vault")],
+      program.programId
+    );
+    // const bearMint = await createMint(
+    //   provider.connection, // Solana 连接
+    //   adminKeypair,        // Payer
+    //   adminKeypair.publicKey, // Mint authority
+    //   null,                // Freeze authority (optional)
+    //   9                    // Decimals
+    // );
+
+    // const bearMintInfo = await provider.connection.getAccountInfo(bearMint);
+    // const getMintInfo = await getMint(provider.connection, bearMint);
+
+    const [ bearMint ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("bear_mint")],
       program.programId
     );
 
@@ -43,63 +105,211 @@ describe('counter', () => {
       program.programId
     );
 
+
     const associatedTokenAccount = await getAssociatedTokenAddress(
       hunterCollectionMint,
       adminKeypair.publicKey
     );
-    const [ masterEdition ] = await findMasterEditionPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
-    const [ metadataAccount ] = await findMetadataPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
-    
+    // const [ masterEditionAccount ] = await findMasterEditionPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
+    // const [ metadataAccount ] = await findMetadataPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
+
     await program.methods
-      .initialize("Hunter-uri")
+      .initialize()
       .accounts({
         admin: adminKeypair.publicKey,
         gameState,
+        gameVault,
         bearMint,
         hunterCollectionMint,
         associatedTokenAccount,
-        metadataAccount,
-        masterEdition
+        // tokenProgram: TOKEN_PROGRAM_ID,
+				// associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+				// systemProgram: anchor.web3.SystemProgram.programId,
+				// rent: anchor.web3.SYSVAR_RENT_PUBKEY,
       })
       .signers([adminKeypair])
       .rpc()
+    
+    const hunterCollectionInfo = await getMint(provider.connection, hunterCollectionMint);
+    // console.log("hunterCollectionInfo=", hunterCollectionInfo);
+
+    const bearMintInfo = await getMint(provider.connection, bearMint);
+    // console.log("bearMintInfo=", bearMintInfo);
+
+    const tokenAccount = await getAccount(provider.connection, associatedTokenAccount)
+    // console.log("tokenAccount=", tokenAccount)
 
     const gameStateData = await program.account.gameState.fetch(gameState.toBase58())
-    console.log("gameStateData=", gameStateData);
-    // expect(currentCount.count).toEqual(0)
+    // console.log("gameStateData=", gameStateData);
+    expect(gameStateData.gameInitialized).toBeTruthy()
+    expect(gameStateData.bearMint.toBase58()).toEqual(bearMint.toBase58())
+    expect(gameStateData.hunterCollectionMint.toBase58()).toEqual(hunterCollectionMint.toBase58())
   })
 
-  // it('Increment Counter', async () => {
-  //   await program.methods.increment().accounts({ counter: counterKeypair.publicKey }).rpc()
+  it('mint hunter', async () => {
+    const signer = adminKeypair
 
-  //   const currentCount = await program.account.counter.fetch(counterKeypair.publicKey)
+    const [gameState] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_state")],
+      program.programId
+    );
 
-  //   expect(currentCount.count).toEqual(1)
-  // })
+    const [gameVault] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_vault")],
+      program.programId
+    );
 
-  // it('Increment Counter Again', async () => {
-  //   await program.methods.increment().accounts({ counter: counterKeypair.publicKey }).rpc()
+    const gameStateData = await program.account.gameState.fetch(gameState.toBase58())
 
-  //   const currentCount = await program.account.counter.fetch(counterKeypair.publicKey)
 
-  //   expect(currentCount.count).toEqual(2)
-  // })
+    const hunterId = gameStateData.huntersMinted.add(new anchor.BN(1))
+    const hunterIdBytes = hunterId.toArrayLike(Buffer, "le", 8)
+    const [ hunterMint ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("hunter_mint"), hunterIdBytes],
+      program.programId
+    );
 
-  // it('Decrement Counter', async () => {
-  //   await program.methods.decrement().accounts({ counter: counterKeypair.publicKey }).rpc()
+    const associatedTokenAccount = await getAssociatedTokenAddress(
+      hunterMint,
+      signer.publicKey
+    );
+    // const [ masterEditionAccount ] = await findMasterEditionPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
+    // const [ metadataAccount ] = await findMetadataPda(hunterCollectionMint, MPL_TOKEN_METADATA_PROGRAM_ID)
 
-  //   const currentCount = await program.account.counter.fetch(counterKeypair.publicKey)
 
-  //   expect(currentCount.count).toEqual(1)
-  // })
+    const [ hunter ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("hunter"), hunterMint.toBuffer()],
+      program.programId
+    );
 
-  // it('Set counter value', async () => {
-  //   await program.methods.set(42).accounts({ counter: counterKeypair.publicKey }).rpc()
+    const transaction = new Transaction();
 
-  //   const currentCount = await program.account.counter.fetch(counterKeypair.publicKey)
+    for (let i = 0; i < 3; i++) {
+      const hunterId = gameStateData.huntersMinted.add(new anchor.BN(i + 1));
+      const hunterIdBytes = hunterId.toArrayLike(Buffer, "le", 8);
+  
+      const [hunterMint] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("hunter_mint"), hunterIdBytes],
+        program.programId
+      );
+  
+      const associatedTokenAccount = await getAssociatedTokenAddress(
+        hunterMint,
+        signer.publicKey
+      );
+  
+      const [hunter] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("hunter"), hunterMint.toBuffer()],
+        program.programId
+      );
+  
+      console.log(`Hunter ${i + 1}:`, hunter.toBase58());
+  
+      // 构造 mintHunter 的指令
+      const instruction = await program.methods
+        .mintHunter()
+        .accounts({
+          signer: signer.publicKey,
+          gameState,
+          hunterMint,
+          associatedTokenAccount,
+          hunter,
+          gameVault
+        })
+        .instruction();
+  
+      // 将指令添加到交易中
+      transaction.add(instruction);
+    }
+  
+    // 发送交易
+    await provider.sendAndConfirm(transaction, [signer]);
+    
+    const gameStateDataAfter = await program.account.gameState.fetch(gameState.toBase58())
+    expect(gameStateDataAfter.huntersMinted.toNumber()).toEqual(3)
+  })
 
-  //   expect(currentCount.count).toEqual(42)
-  // })
+  it('buy bears', async () => {
+    const signer = adminKeypair
+    const [gameState] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_state")],
+      program.programId
+    );
+
+    const [gameVault] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_vault")],
+      program.programId
+    );
+
+    const [ userBearBalance ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("user_bear_balance"), signer.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const gameStateBefore = await program.account.gameState.fetch(gameState.toBase58())
+
+    const paidSolAmount = new anchor.BN(LAMPORTS_PER_SOL * 1)
+    await program.methods
+      .buyBear(paidSolAmount, new anchor.BN(1))
+      .accounts({
+        signer: signer.publicKey,
+        gameState,
+        userBearBalance,
+        gameVault
+      })
+      .signers([signer])
+      .rpc()
+
+    const gameStateAfter= await program.account.gameState.fetch(gameState.toBase58())
+
+    console.log("gameStateBefore=", gameStateBefore);
+    console.log("gameStateAfter=", gameStateAfter);
+
+    expect(gameStateAfter.lpSolBalance.sub(gameStateBefore.lpSolBalance)).toEqual(paidSolAmount)
+  })
+
+  it('sell bears', async () => {
+    const signer = adminKeypair
+    const [gameState] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_state")],
+      program.programId
+    );
+
+    const [gameVault] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_vault")],
+      program.programId
+    );
+
+    const [ sellerBearBalance ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("user_bear_balance"), signer.publicKey.toBuffer()],
+      program.programId
+    );
+
+    const gameStateBefore = await program.account.gameState.fetch(gameState.toBase58())
+    const gameVaultInfo = await provider.connection.getAccountInfo(gameVault)
+
+    console.log("gameVaultInfo=", gameVaultInfo);
+    const sendBearAmount = new anchor.BN(LAMPORTS_PER_SOL * 0.01)
+    await program.methods
+      .sellBear(sendBearAmount, new anchor.BN(LAMPORTS_PER_SOL))
+      .accounts({
+        signer: signer.publicKey,
+        gameState,
+        gameVault,
+        sellerBearBalance,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([signer])
+      .rpc()
+
+    const gameStateAfter= await program.account.gameState.fetch(gameState.toBase58())
+
+    console.log("gameStateBefore=", gameStateBefore);
+    console.log("gameStateAfter=", gameStateAfter);
+
+    // expect(gameStateAfter.lpSolBalance.sub(gameStateBefore.lpSolBalance)).toEqual(paidSolAmount)
+  })
+
 
   // it('Set close the counter account', async () => {
   //   await program.methods
