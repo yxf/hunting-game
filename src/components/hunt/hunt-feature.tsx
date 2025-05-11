@@ -111,7 +111,10 @@ export default function HuntFeature() {
             <div className="relative">
               <button 
                 className="input input-bordered w-40 flex justify-between items-center"
-                onClick={() => setShowHunterDropdown(!showHunterDropdown)}
+                onClick={() => {
+                  setShowHunterDropdown(!showHunterDropdown)
+                  setShowHolderDropdown(false) // Hide holder dropdown when hunter dropdown is clicked
+                }}
               >
                 {selectedHunter ? selectedHunter.name : 'Select your Hunter'} 
                 <span className="ml-2">▼</span>
@@ -137,7 +140,10 @@ export default function HuntFeature() {
               <div className="relative">
                 <button 
                   className="input input-bordered w-64 flex justify-between items-center"
-                  onClick={() => setShowHolderDropdown(!showHolderDropdown)}
+                  onClick={() => {
+                    setShowHolderDropdown(!showHolderDropdown)
+                    setShowHunterDropdown(false) // Hide hunter dropdown when holder dropdown is clicked
+                  }}
                 >
                   {selectedHolder 
                     ? `${selectedHolder.name}` 
