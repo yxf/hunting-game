@@ -79,13 +79,10 @@ export default function HuntFeature() {
     <div>
       <AppHero 
         title={`You are Hunter ${hunterCount > 0 ? `× ${hunterCount}` : ''}`}
-        subtitle="" 
+        subtitle={`Hunt some bears. Today you have ${huntingTimes} time left today.`} 
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <p className="text-lg">Hunt some bears. Today you have {huntingTimes} time left today.</p>
-        </div>
         
         {!huntResult ? (
           <div className="space-y-4">
@@ -156,8 +153,8 @@ export default function HuntFeature() {
           </div>
         ) : (
           <div className="space-y-4">
-            <p className="text-lg">You hunted {huntResult.totalHunted} bears.</p>
-            <p className="text-lg">{huntResult.walletBears} bears has gone into your wallet. {huntResult.burnedBears} bears has been burned.</p>
+            <p className="text-lg font-bold">You hunted {huntResult.totalHunted} bears.</p>
+            <p className="text-sm">{huntResult.walletBears} bears has gone into your wallet. {huntResult.burnedBears} bears has been burned.</p>
             
             <button 
               className="btn btn-link text-blue-500 px-0"
