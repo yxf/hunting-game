@@ -32,7 +32,7 @@ export default function GameIntroFeature() {
         />
       
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="bg-base-200 bg-opacity-60 shadow-xl rounded-lg p-6">
+          <div className="bg-base-200 bg-opacity-60 shadow-xl rounded-lg p-6 backdrop-blur-sm">
             <div className="mb-8">
               <h2 className="text-2xl font-bold mb-4 text-center">Game Overview</h2>
               <p className="text-lg mb-4">
