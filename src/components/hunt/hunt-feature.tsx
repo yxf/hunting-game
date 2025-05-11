@@ -103,13 +103,14 @@ export default function HuntFeature() {
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div className="bg-base-200 bg-opacity-60 rounded-lg p-6 backdrop-blur-sm">
         
         {!huntResult ? (
           <div className="space-y-4">
             {/* Hunter Selection */}
             <div className="relative">
               <button 
-                className="btn bg-gray-500 text-white w-40 flex justify-between items-center"
+                className="input input-bordered w-40 flex justify-between items-center"
                 onClick={() => setShowHunterDropdown(!showHunterDropdown)}
               >
                 {selectedHunter ? selectedHunter.name : 'Select your Hunter'} 
@@ -135,7 +136,7 @@ export default function HuntFeature() {
             {selectedHunter && (
               <div className="relative">
                 <button 
-                  className="btn bg-gray-500 text-white w-64 flex justify-between items-center"
+                  className="input input-bordered w-64 flex justify-between items-center"
                   onClick={() => setShowHolderDropdown(!showHolderDropdown)}
                 >
                   {selectedHolder 
@@ -184,6 +185,7 @@ export default function HuntFeature() {
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
     </>
