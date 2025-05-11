@@ -21,7 +21,13 @@ const links: { label: string; path: string }[] = [
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Underdog&display=swap" rel="stylesheet" />
+      </head>
+      <body style={{ fontFamily: 'Underdog, system-ui', fontWeight: 400, fontStyle: 'normal' }}>
         <ReactQueryProvider>
           <ClusterProvider>
             <SolanaProvider>
