@@ -98,8 +98,8 @@ export default function HuntFeature() {
       `}</style>
     <div className="hunting-page">
       <AppHero 
-        title={`You are Hunter ${hunterCount > 0 ? `× ${hunterCount}` : ''}`}
-        subtitle={`Hunt some bears. Today you have ${huntingTimes} time left today.`} 
+        title={`You have ${hunterCount > 0 ? ` ${hunterCount}` : ''} Hunter${hunterCount > 1 ? 's' : ''}`}
+        subtitle={`Hunt some bears! You have ${huntingTimes} hunting ${huntingTimes === 1 ? 'expedition' : 'expeditions'} remaining today.`} 
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
