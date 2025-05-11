@@ -15,7 +15,7 @@ export function UiLayout({ children, links }: { children: ReactNode; links: { la
 
   return (
     <div className="h-full flex flex-col">
-      <div className="navbar bg-base-300 dark:text-neutral-content flex-col md:flex-row space-y-2 md:space-y-0">
+      <div style={{zIndex: 100}} className="navbar bg-base-300 dark:text-neutral-content flex-col md:flex-row space-y-2 md:space-y-0">
         <div className="flex-1">
           <Link className="btn btn-ghost normal-case text-xl" href="/">
             Scaffold
@@ -129,7 +129,7 @@ export function AppHero({
   subtitle: ReactNode
 }) {
   return (
-    <div className="hero pt-[64px]">
+    <div className="hero pt-10">
       <div className="hero-content text-center">
         <div className="max-w-2xl">
           {typeof title === 'string' ? <h1 className="text-5xl font-bold">{title}</h1> : title}
