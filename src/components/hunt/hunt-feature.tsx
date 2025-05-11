@@ -110,7 +110,7 @@ export default function HuntFeature() {
             {/* Hunter Selection */}
             <div className="relative">
               <button 
-                className="input input-bordered w-40 flex justify-between items-center"
+                className="input input-bordered w-full flex justify-between items-center"
                 onClick={() => {
                   setShowHunterDropdown(!showHunterDropdown)
                   setShowHolderDropdown(false) // Hide holder dropdown when hunter dropdown is clicked
@@ -139,7 +139,7 @@ export default function HuntFeature() {
             {selectedHunter && (
               <div className="relative">
                 <button 
-                  className="input input-bordered w-64 flex justify-between items-center"
+                  className="input input-bordered w-full flex justify-between items-center"
                   onClick={() => {
                     setShowHolderDropdown(!showHolderDropdown)
                     setShowHunterDropdown(false) // Hide hunter dropdown when holder dropdown is clicked
@@ -168,15 +168,14 @@ export default function HuntFeature() {
               </div>
             )}
             
-            {/* Hunt Button - Only show if both Hunter and Holder are selected */}
-            {selectedHunter && selectedHolder && (
-              <button 
-                className="btn bg-blue-500 hover:bg-blue-600 text-white w-24"
-                onClick={performHunt}
-              >
-                Hunt
-              </button>
-            )}
+            {/* Hunt Button - Always visible but disabled until both Hunter and Holder are selected */}
+            <button 
+              className={`btn w-full ${selectedHunter && selectedHolder ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-70'}`}
+              onClick={performHunt}
+              disabled={!selectedHunter || !selectedHolder}
+            >
+              Hunt
+            </button>
           </div>
         ) : (
           <div className="space-y-4">

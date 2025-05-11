@@ -58,7 +58,7 @@ export default function HunterMintingFeature() {
         />
       
       <div className="max-w-md mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-base-200 bg-opacity-60 shadow-xl rounded-lg p-6 bg-opacity-90">
+        <div className="bg-base-200 bg-opacity-60 shadow-xl rounded-lg p-6 backdrop-blur-sm">
           <div className="text-center mb-6">
             <p className="text-lg mb-2">Hunter total supply is {totalSupply}, mint fee is {mintFee} SOL</p>
             
@@ -76,7 +76,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={decrementCount}
-                  disabled={mintCount <= 1}
+                  // disabled={mintCount <= 1}
                 >
                   -
                 </button>
@@ -86,7 +86,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={incrementCount}
-                  disabled={mintCount >= 10}
+                  // disabled={mintCount >= 10}
                 >
                   +
                 </button>
