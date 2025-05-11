@@ -129,7 +129,7 @@ export function AppHero({
   subtitle: ReactNode
 }) {
   return (
-    <div className="hero pt-10">
+    <div className="hero pt-14">
       <div className="hero-content text-center">
         <div className="max-w-2xl">
           {typeof title === 'string' ? <h1 className="text-5xl font-bold text-white">{title}</h1> : title}
