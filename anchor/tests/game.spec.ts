@@ -224,6 +224,7 @@ describe('HuntingGame', () => {
   
     // 发送交易
     await provider.sendAndConfirm(transaction, [signer]);
+
     
     const gameStateDataAfter = await program.account.gameState.fetch(gameState.toBase58())
     expect(gameStateDataAfter.huntersMinted.toNumber()).toEqual(3)
@@ -285,10 +286,12 @@ describe('HuntingGame', () => {
       program.programId
     );
 
-    const gameStateBefore = await program.account.gameState.fetch(gameState.toBase58())
-    const gameVaultInfo = await provider.connection.getAccountInfo(gameVault)
+    const gameVaultInfoBefore = await provider.connection.getAccountInfo(gameVault)
+    // console.log("gameVaultInfoBefore=", gameVaultInfoBefore);
+    // expect(gameVaultInfoBefore?.lamports).toEqual(0)
 
-    console.log("gameVaultInfo=", gameVaultInfo);
+    const gameStateBefore = await program.account.gameState.fetch(gameState.toBase58())
+    
     const sendBearAmount = new anchor.BN(LAMPORTS_PER_SOL * 0.01)
     await program.methods
       .sellBear(sendBearAmount, new anchor.BN(LAMPORTS_PER_SOL))
@@ -304,85 +307,106 @@ describe('HuntingGame', () => {
 
     const gameStateAfter= await program.account.gameState.fetch(gameState.toBase58())
 
-    console.log("gameStateBefore=", gameStateBefore);
-    console.log("gameStateAfter=", gameStateAfter);
-
-    // expect(gameStateAfter.lpSolBalance.sub(gameStateBefore.lpSolBalance)).toEqual(paidSolAmount)
+    const gameVaultInfo = await provider.connection.getAccountInfo(gameVault)
+    console.log("gameVaultInfo=", gameVaultInfo);
   })
 
+  it('hunt', async () => {
+    const signer = adminKeypair
+    const [gameState] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("game_state")],
+      program.programId
+    );
 
-  // it('Set close the counter account', async () => {
-  //   await program.methods
-  //     .close()
-  //     .accounts({
-  //       payer: payer.publicKey,
-  //       counter: counterKeypair.publicKey,
-  //     })
-  //     .rpc()
+    const hunterId = new anchor.BN(1)
+    const hunterIdBytes = hunterId.toArrayLike(Buffer, "le", 8)
+    const [ hunterMint ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("hunter_mint"), hunterIdBytes],
+      program.programId
+    );
 
-  //   // The account should no longer exist, returning null.
-  //   const userAccount = await program.account.counter.fetchNullable(counterKeypair.publicKey)
-  //   expect(userAccount).toBeNull()
-  // })
+    const associatedTokenAccount = await getAssociatedTokenAddress(
+      hunterMint,
+      signer.publicKey
+    );
 
-  // it('Set user balance', async () => {
-  //   const [userBalancePda, _] = await anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("user_balance"), payer.publicKey.toBuffer()],
-  //     program.programId
-  //   );
+    const [ hunter ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("hunter"), hunterMint.toBuffer()],
+      program.programId
+    );
 
-  //   const payerInfo = await provider.connection.getAccountInfo(payer.publicKey)
+    // const fetchHunter = await program.account.hunter.fetch(hunter.toBase58())
+    // console.log("fetchHunter=", fetchHunter);
 
-  //   const balance = new anchor.BN(2 * anchor.web3.LAMPORTS_PER_SOL)
-  //   await program.methods
-  //     .setUserBalance(balance)
-  //     .accounts({ 
-  //       user: payer.publicKey,
-  //       userBalance: userBalancePda, 
-  //     })
-  //     .rpc()
-  //   // Fetch the sol balance of user balance account
-  //   const userBalanceAccount = await provider.connection.getAccountInfo(userBalancePda)
-  //   console.log("userBalanceAccount=", userBalanceAccount);
-   
-  //   const userBalance = await program.account.userBalance.fetch(userBalancePda)
-  //   console.log("userBalance=", userBalance);
-  //   expect(userBalance.free.toNumber()).toEqual(balance.toNumber()) 
-  // })
+    const [ hunterBearBalance ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("user_bear_balance"), signer.publicKey.toBuffer()],
+      program.programId
+    );
 
-  // it('hunt', async () => {
-  //   const [userBalancePda] = await anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("user_balance"), payer.publicKey.toBuffer()],
-  //     program.programId
-  //   );
-  //   const hunter = Keypair.generate()
+    const user = Keypair.generate()
 
-  //   // 为 hunter 添加 SOL
-  //   const airdropSignature = await provider.connection.requestAirdrop(
-  //     hunter.publicKey,
-  //     2 * anchor.web3.LAMPORTS_PER_SOL // 2 SOL
-  //   );
-  //   await provider.connection.confirmTransaction(airdropSignature);
+    // buy some bears for the user
+    {
 
+      const airdropSignature = await provider.connection.requestAirdrop(
+        user.publicKey,
+        2 * anchor.web3.LAMPORTS_PER_SOL // 2 SOL
+      );
+      await provider.connection.confirmTransaction(airdropSignature);
 
-  //   const [hunterBalancePda] = await anchor.web3.PublicKey.findProgramAddressSync(
-  //     [Buffer.from("user_balance"), hunter.publicKey.toBuffer()],
-  //     program.programId
-  //   );
+      const [gameVault] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("game_vault")],
+        program.programId
+      );
+  
+      const [ userBearBalance ] = await anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("user_bear_balance"), user.publicKey.toBuffer()],
+        program.programId
+      );
+  
+      const paidSolAmount = new anchor.BN(LAMPORTS_PER_SOL * 1)
+      await program.methods
+        .buyBear(paidSolAmount, new anchor.BN(1))
+        .accounts({
+          signer: user.publicKey,
+          gameState,
+          userBearBalance,
+          gameVault
+        })
+        .signers([user])
+        .rpc()
+    }
 
-  //   const balance = new anchor.BN(1000)
-  //   await program.methods
-  //     .hunt(payer.publicKey)
-  //     .accounts({ 
-  //       hunter: hunter.publicKey,
-  //       userBalance: userBalancePda,
-  //       hunterBalance: hunterBalancePda,
-  //     })
-  //     .signers([hunter])
-  //     .rpc()
+    const [ userBearBalance ] = await anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("user_bear_balance"), user.publicKey.toBuffer()],
+      program.programId
+    )
+    const fetchedUserBalanceBefore = await program.account.userBearBalance.fetch(userBearBalance.toBase58())
+    console.log("fetchedUserBalanceBefore=", fetchedUserBalanceBefore);
 
-  //   const hunterBalance = await program.account.userBalance.fetch(hunterBalancePda)
+    const fetchedHunter = await program.account.hunter.fetch(hunter.toBase58())
+    console.log("fetchedHunter=", fetchedHunter);
 
-  //   expect(hunterBalance.free.toNumber()).toEqual(50) 
-  // })
+    await program.methods
+      .hunt(user.publicKey, hunterId)
+      .accounts({
+        signer: signer.publicKey,
+        gameState,
+        hunterMint,
+        associatedTokenAccount,
+        hunter,
+        hunterBearBalance,
+        userBearBalance,
+      })
+      .signers([signer])
+      .rpc()
+    
+    // const fetchedHunterBalance = await program.account.userBearBalance.fetch(hunterBearBalance.toBase58())
+    const fetchedUserBalance = await program.account.userBearBalance.fetch(userBearBalance.toBase58())
+    
+    const huntedAmount = fetchedUserBalanceBefore.free.sub(fetchedUserBalance.free)
+    const expectedAmount = fetchedHunter.huntRate.mul(new anchor.BN(100))
+    expect(huntedAmount.toNumber()).toEqual(expectedAmount.toNumber())
+
+  })
 })

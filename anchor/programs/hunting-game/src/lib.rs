@@ -3,6 +3,8 @@ use anchor_lang::solana_program::system_instruction;
 use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::program::invoke_signed;
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
+
 
 use anchor_spl::token::{burn, mint_to, Burn, Mint, MintTo, Token, TokenAccount};
 use anchor_spl::metadata::{
@@ -54,6 +56,25 @@ pub mod hunting_game {
     );
 
     mint_to(cpi_context, 1)?;
+
+    let seeds: &[&[u8]] = &[b"game_vault", &[ctx.bumps.game_vault]];
+
+    // create game vault pda to support native sol withdraw from
+    invoke_signed(
+        &system_instruction::create_account(
+            &ctx.accounts.admin.key(),
+            &ctx.accounts.game_vault.key(),
+            ctx.accounts.rent.minimum_balance(0), // space = 0
+            0,
+            &ctx.accounts.system_program.key(),
+        ),
+        &[
+            ctx.accounts.admin.to_account_info(),
+            ctx.accounts.game_vault.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+        ],
+        &[&seeds],
+    )?;
 
     // let cpi_context = CpiContext::new(
     //   ctx.accounts.token_metadata_program.to_account_info(),
@@ -125,7 +146,7 @@ pub mod hunting_game {
 
     mint_to(cpi_context, 1)?;
 
-    const sol_amount: u64 = 1 * 1_000_000_00; // 0.1 SOL
+    const sol_amount: u64 = LAMPORTS_PER_SOL / 10; // 0.1 SOL
 
     let ix = system_instruction::transfer(
       &ctx.accounts.signer.key(),
@@ -172,16 +193,16 @@ pub mod hunting_game {
 
     // create_metadata_accounts_v3(cpi_context, data_v2, false, false, None)?;
 
-    // ctx.accounts.hunter.token_id = hunter_id;
-    // let clock = Clock::get()?;
-    // let random_seed = u64::from_le_bytes(
-    //     clock
-    //     .slot
-    //     .to_le_bytes()[0..8]
-    //     .try_into()
-    //     .unwrap(),
-    // );
-    // ctx.accounts.hunter.hunt_rate = 100 + (random_seed % 100);
+    ctx.accounts.hunter.token_id = hunter_id;
+    let clock = Clock::get()?;
+    let random_seed = u64::from_le_bytes(
+        clock
+        .slot
+        .to_le_bytes()[0..8]
+        .try_into()
+        .unwrap(),
+    );
+    ctx.accounts.hunter.hunt_rate = 100 + (random_seed % 100);
 
     Ok(())
   }
@@ -232,8 +253,7 @@ pub mod hunting_game {
       &ix, 
       &[
         ctx.accounts.game_vault.to_account_info(),
-        ctx.accounts.signer.to_account_info(),
-        ctx.accounts.system_program.to_account_info(),
+        ctx.accounts.signer.to_account_info()
       ],
       signer_seeds
     )?;
@@ -245,49 +265,38 @@ pub mod hunting_game {
     Ok(())
   }
 
+  pub fn hunt(ctx: Context<Hunt>, user: Pubkey, hunter_id: u64) -> Result<()> {
 
+    msg!("Hunting user {} by hunter {}", user, hunter_id);
 
-  // pub fn set_user_balance(ctx: Context<SetUserBalance>, free_balance: u64) -> Result<()> {
-  //   ctx.accounts.user_balance.user = ctx.accounts.user.key();
-  //   ctx.accounts.user_balance.free = free_balance;
-  //   ctx.accounts.user_balance.staked = 0;
-  
+    if ctx.accounts.hunter.token_id != hunter_id {
+      return Err(ErrorCode::NoPermission.into()); // invalid hunter id
+    }
+
+    if ctx.accounts.hunter_mint.supply == 0 {
+      return Err(ErrorCode::InvalidHunterMint.into()); // no hunter
+    }
+
+    if ctx.accounts.associated_token_account.owner != ctx.accounts.signer.key() {
+      return Err(ErrorCode::NotHunterOwner.into()); // not hunter owner
+    }
+
+    if ctx.accounts.user_bear_balance.user != user {
+      return Err(ErrorCode::InvalidBearBalance.into()); // invalid user bear balance
+    }
+
+    let hunted_amount = ctx.accounts.hunter.hunt_rate * 100;
+    if ctx.accounts.user_bear_balance.free < hunted_amount {
+      return Err(ErrorCode::InsufficientBalance.into());
+    }
     
-  //   let ix = system_instruction::transfer(
-  //     &ctx.accounts.user.key(),
-  //     &ctx.accounts.user_balance.key(), 
-  //     free_balance,
-  //   );
-  //   invoke(  
-  //     &ix, 
-  //     &[
-  //       ctx.accounts.user.to_account_info(),
-  //       ctx.accounts.user_balance.to_account_info(),
-  //       ctx.accounts.system_program.to_account_info(),
-  //     ],
-  //   )?;
+    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_sub(hunted_amount).unwrap(); 
 
-  //   msg!("Transfer {} lamports from {} to {}", free_balance, ctx.accounts.user.key(), ctx.accounts.user_balance.key());
-  //   msg!("User balance initialized for: {:?}", ctx.accounts.user.key());
-  //   msg!("Free balance: {:?}", ctx.accounts.user_balance.free);
-  //   msg!("Staked balance: {:?}", ctx.accounts.user_balance.staked);
-  //   Ok(())
-  // }
+    // 20% of hunted amount to hunter
+    ctx.accounts.hunter_bear_balance.free = ctx.accounts.hunter_bear_balance.free.checked_add(hunted_amount * 20 / 100).unwrap();
 
-  // pub fn hunt(ctx: Context<Hunt>, user: Pubkey) -> Result<()> {
-  //   if ctx.accounts.user_balance.user != user {
-  //     return Err(ErrorCode::NoPermission.into());
-  //   }
-  //   let hunted_amount = 100;
-  //   if ctx.accounts.user_balance.free < hunted_amount {
-  //     return Err(ErrorCode::InsufficientBalance.into());
-  //   }
-  //   ctx.accounts.user_balance.free = ctx.accounts.user_balance.free.checked_sub(hunted_amount).unwrap();
-  //   ctx.accounts.hunter_balance.free = ctx.accounts.hunter_balance.free.checked_add(hunted_amount / 2).unwrap();
-  //   msg!("User {} has been decreased {:?}", user, hunted_amount);
-  //   msg!("User {} has been increased {:?}", user, hunted_amount / 2);
-  //   Ok(())
-  // }
+    Ok(())
+  }
 }
 
 #[derive(Accounts)]
@@ -308,11 +317,9 @@ pub struct InitializeGameState<'info> {
   pub game_state: Account<'info, GameState>,
 
   #[account(
-    init,
-    payer = admin,
+    mut,
     seeds=[b"game_vault"],
-    bump,
-    space = 8
+    bump
   )]
   /// CHECK: This is safe as it's just a PDA used as vault
   game_vault: AccountInfo<'info>,
@@ -364,8 +371,6 @@ pub struct InitializeGameState<'info> {
   pub associated_token_program: Program<'info, AssociatedToken>,
   pub rent: Sysvar<'info, Rent>,
 }
-
-
 
 #[derive(Accounts)]
 pub struct MintHunter<'info> {
@@ -513,78 +518,60 @@ pub struct Hunter {
     pub hunt_rate: u64, // 100 ~ 200
 }
 
-// #[derive(Accounts)]
-// pub struct SetUserBalance<'info> {
-//     #[account(mut)]
-//     pub user: Signer<'info>,
-    
-//     #[account(
-//       init_if_needed,
-//       space = 8 + UserBalance::INIT_SPACE,
-//       payer = user,
-//       seeds = [b"user_balance".as_ref(), user.key().as_ref()],
-//       bump
-//     )]
-//     pub user_balance: Account<'info, UserBalance>,
-//     pub system_program: Program<'info, System>,
-// }
+#[derive(Accounts)]
+#[instruction(user: Pubkey, hunter_id: u64)]
+pub struct Hunt<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"game_state"],
+        bump
+    )]
+    pub game_state: Account<'info, GameState>,
+
+    #[account(
+        mut,
+        seeds = [b"hunter_mint".as_ref(), hunter_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub hunter_mint: Account<'info, Mint>, // Hunter NFT
+
+    #[account(
+      mut,
+      constraint = associated_token_account.owner == signer.key(),
+      constraint = associated_token_account.mint == hunter_mint.key()
+    )]
+    pub associated_token_account: Account<'info, TokenAccount>, // Hunter NFT token account
 
 
+    #[account(
+      mut,
+      seeds = [b"hunter".as_ref(), hunter_mint.key().as_ref()],
+      bump
+    )]
+    pub hunter: Account<'info, Hunter>,
 
+    #[account(
+      mut,
+      seeds = [b"user_bear_balance".as_ref(), user.key().as_ref()],
+      bump
+    )]
+    pub user_bear_balance: Account<'info, UserBearBalance>,
 
-// #[derive(Accounts)]
-// #[instruction(user: Pubkey, hunter_id: u64)]
-// pub struct Hunt<'info> {
-//     #[account(mut)]
-//     pub payer: Signer<'info>,
+    #[account(
+      init_if_needed,
+      space = 8 + UserBearBalance::INIT_SPACE,
+      payer = signer,
+      seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub hunter_bear_balance: Account<'info, UserBearBalance>,
 
-//     #[account(
-//         mut,
-//         associated_token::mint = hunter_mint,
-//         associated_token::authority = payer,
-//         constraint = hunter_mint_token_account.owner == payer.key(),
-//         constraint = hunter_mint_token_account.mint == hunter_mint.key(),
-//         constraint = hunter_mint_token_account.amount >= 1
-//     )]
-//     pub hunter_token_account: Account<'info, TokenAccount>,
-
-
-//     #[account(
-//         mut,
-//         payer = payer,
-//         mint::decimals = 0,
-//         mint::authority = signer.key(),
-//         mint::freeze_authority = signer.key()
-//     )]
-//     pub hunter_mint: Account<'info, Mint>,
-
-//     #[account(
-//       mut,
-//       seeds = [b"hunter".as_ref(), hunter_id.to_le_bytes().as_ref()],
-//       bump
-//     )]
-//     pub hunter_attributes: Account<'info, HunterAttributes>,
-
-//     #[account(
-//       mut,
-//       seeds = [b"user_balance".as_ref(), user.key().as_ref()],
-//       bump
-//     )]
-//     pub user_balance: Account<'info, UserBalance>,
-
-//     #[account(
-//       init_if_needed,
-//       space = 8 + UserBalance::INIT_SPACE,
-//       payer = hunter,
-//       seeds = [b"user_balance".as_ref(), hunter.key().as_ref()],
-//       bump
-//     )]
-//     pub hunter_balance: Account<'info, UserBalance>,
-
-//     pub token_program: Program<'info, Token>,
-//     pub associated_token_program: Program<'info, AssociatedToken>,
-//     pub system_program: Program<'info, System>,
-// }
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
 
 #[account]
 #[derive(InitSpace)]
@@ -621,6 +608,15 @@ pub enum ErrorCode {
 
     #[msg("No permission to access this account")]
     NoPermission,
+
+    #[msg("Invaid hunter mint")]
+    InvalidHunterMint,
+
+    #[msg("Not hunter owner")]
+    NotHunterOwner,
+
+    #[msg("Invalid bear balance")]
+    InvalidBearBalance,
 
     #[msg("Insufficient balance")]
     InsufficientBalance,
