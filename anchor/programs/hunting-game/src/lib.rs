@@ -146,7 +146,7 @@ pub mod hunting_game {
 
     mint_to(cpi_context, 1)?;
 
-    const sol_amount: u64 = LAMPORTS_PER_SOL / 10; // 0.1 SOL
+    const sol_amount: u64 = LAMPORTS_PER_SOL / 10; // 0.1 SOL per hunter
 
     let ix = system_instruction::transfer(
       &ctx.accounts.signer.key(),
@@ -207,7 +207,47 @@ pub mod hunting_game {
     Ok(())
   }
 
+  pub fn initialize_lp(ctx: Context<InitializeGameState>) -> Result<()> {
+    if !ctx.accounts.game_state.lp_initialized {
+      return Err(ErrorCode::LpAlreadyInitialized.into());
+    }
+
+    if ctx.accounts.game_state.hunters_minted < 1000 {
+      return Err(ErrorCode::MintingPhase1NotFinished.into());
+    }
+
+    ctx.accounts.game_state.lp_initialized = true;
+    ctx.accounts.game_state.lp_bear_balance = 1_000_000_000;
+
+    Ok(())
+  }
+
+  pub fn initialize_lp_for_test(ctx: Context<InitializeLpForTest>) -> Result<()> {
+    let sol_amount = 100 * LAMPORTS_PER_SOL;
+    let ix = system_instruction::transfer(
+      &ctx.accounts.admin.key(),
+      &ctx.accounts.game_vault.key(),
+      sol_amount,
+    );
+    invoke(  
+      &ix, 
+      &[
+        ctx.accounts.admin.to_account_info(),
+        ctx.accounts.game_vault.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+      ],
+    )?;
+    ctx.accounts.game_state.lp_sol_balance = sol_amount;
+    ctx.accounts.game_state.lp_bear_balance = 1_000_000_000;
+
+    Ok(())
+  }
+
   pub fn buy_bear(ctx: Context<BuyBear>, paid_sol_amount: u64, min_received_bear_amount: u64) -> Result<()> {
+    if !ctx.accounts.game_state.lp_initialized {
+      return Err(ErrorCode::MintingPhase1NotFinished.into());
+    }
+
     let ix = system_instruction::transfer(
       &ctx.accounts.signer.key(),
       &ctx.accounts.game_vault.key(),
@@ -222,14 +262,16 @@ pub mod hunting_game {
       ],
     )?;
 
-
     ctx.accounts.user_bear_balance.user = ctx.accounts.signer.key();
 
-    let received_bear_amount = 100_000_000;
-    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(received_bear_amount).unwrap();
+    let real_sol_amount = paid_sol_amount - paid_sol_amount / 100; // 1% fee to lp
+    let received_bear_amount = real_sol_amount * ctx.accounts.game_state.lp_bear_balance / (ctx.accounts.game_state.lp_sol_balance + real_sol_amount);
 
-    // mock lp_bear_balance 100000000000
-    ctx.accounts.game_state.lp_bear_balance = LAMPORTS_PER_SOL * 10000;
+    if received_bear_amount < min_received_bear_amount {
+      return Err(ErrorCode::InsufficientBalance.into());
+    }
+
+    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(received_bear_amount).unwrap();
 
     ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(paid_sol_amount).unwrap();
     ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_sub(received_bear_amount).unwrap();
@@ -238,10 +280,26 @@ pub mod hunting_game {
   }
 
   pub fn sell_bear(ctx: Context<SellBear>, send_bear_amount: u64, min_received_sol_amount: u64) -> Result<()> {
-    let received_sol_amount = LAMPORTS_PER_SOL / 10;
-    
+    if !ctx.accounts.game_state.lp_initialized {
+      return Err(ErrorCode::MintingPhase1NotFinished.into());
+    }
+
+    if ctx.accounts.seller_bear_balance.free < send_bear_amount {
+      return Err(ErrorCode::InsufficientBalance.into());
+    }
+
     let bump = ctx.bumps.game_vault;
     let signer_seeds: &[&[&[u8]]] = &[&[b"game_vault", &[bump]]];
+
+    let real_bear_amount = send_bear_amount - send_bear_amount / 100; // 1% fee to lp
+    let received_sol_amount = real_bear_amount * ctx.accounts.game_state.lp_bear_balance / (ctx.accounts.game_state.lp_sol_balance - real_bear_amount);
+
+    if received_sol_amount < min_received_sol_amount {
+      return Err(ErrorCode::InsufficientBalance.into());
+    }
+
+    ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_add(send_bear_amount).unwrap();
+    ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_sub(received_sol_amount).unwrap();
 
     let ix = system_instruction::transfer(
       &ctx.accounts.game_vault.key(),
@@ -258,9 +316,7 @@ pub mod hunting_game {
       signer_seeds
     )?;
 
-    
-    ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_add(send_bear_amount).unwrap();
-    ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_sub(received_sol_amount).unwrap();
+    ctx.accounts.seller_bear_balance.free = ctx.accounts.seller_bear_balance.free.checked_sub(send_bear_amount).unwrap();
 
     Ok(())
   }
@@ -294,6 +350,8 @@ pub mod hunting_game {
 
     // 20% of hunted amount to hunter
     ctx.accounts.hunter_bear_balance.free = ctx.accounts.hunter_bear_balance.free.checked_add(hunted_amount * 20 / 100).unwrap();
+
+    ctx.accounts.hunter.last_hunt_time = Clock::get()?.unix_timestamp as u64;
 
     Ok(())
   }
@@ -511,11 +569,58 @@ pub struct SellBear<'info> {
   pub rent: Sysvar<'info, Rent>,
 }
 
+#[derive(Accounts)]
+pub struct InitializeLpForTest<'info> {
+  #[account(
+    mut,
+    address = ADMIN_PUBKEY
+  )]
+  pub admin: Signer<'info>,
+
+  #[account(  
+    init,
+    payer = admin,
+    space = 8 + GameState::INIT_SPACE,
+    seeds = [b"game_state"],
+    bump
+  )]
+  pub game_state: Account<'info, GameState>,
+
+  #[account(
+    mut,
+    seeds=[b"game_vault"],
+    bump
+  )]
+  /// CHECK: This is safe as it's just a PDA used as vault
+  game_vault: AccountInfo<'info>,
+
+  pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct InitializeLp<'info> {
+  #[account(
+    mut,
+    address = ADMIN_PUBKEY
+  )]
+  pub admin: Signer<'info>,
+
+  #[account(  
+    mut,
+    seeds = [b"game_state"],
+    bump
+  )]
+  pub game_state: Account<'info, GameState>,
+
+  pub system_program: Program<'info, System>,
+}
+
 #[account]
 #[derive(InitSpace)]
 pub struct Hunter {
     pub token_id: u64,
-    pub hunt_rate: u64, // 100 ~ 200
+    pub hunt_rate: u64, // 100 ~ 200,
+    pub last_hunt_time: u64,
 }
 
 #[derive(Accounts)]
@@ -605,6 +710,12 @@ pub struct UserBearBalance {
 pub enum ErrorCode {
     #[msg("Game state already initialized")]
     GameAlreadyInitialized, 
+
+    #[msg("Liquidity pool is already initialized")]
+    LpAlreadyInitialized, 
+
+    #[msg("Minting phase 1 is not finished")]
+    MintingPhase1NotFinished, 
 
     #[msg("No permission to access this account")]
     NoPermission,
