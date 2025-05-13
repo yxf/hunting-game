@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AppHero } from '../ui/ui-layout'
+import Image from 'next/image'
 
 export default function HunterMintingFeature() {
   const [mintCount, setMintCount] = useState(1)
@@ -31,14 +32,33 @@ export default function HunterMintingFeature() {
   }
 
   return (
-    <div>
-      <AppHero 
-        title="Mint your Hunter" 
-        subtitle="Join the game by minting your Hunter NFT" 
-      />
+    <>
+      <style jsx global>{`
+        .hunter-minting-page {
+          position: relative;
+          z-index: 0;
+        }
+        .hunter-minting-page::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url('/assets/forest-with-hunter.png');
+          background-size: cover;
+          background-position: center;
+          z-index: -1;
+        }
+      `}</style>
+      <div className="hunter-minting-page">
+        <AppHero 
+          title="Mint your Hunter" 
+          subtitle="Join the game by minting your Hunter NFT" 
+        />
       
       <div className="max-w-md mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="bg-base-200 shadow-xl rounded-lg p-6">
+        <div className="bg-base-200 bg-opacity-60 shadow-xl rounded-lg p-6 backdrop-blur-sm">
           <div className="text-center mb-6">
             <p className="text-lg mb-2">Hunter total supply is {totalSupply}, mint fee is {mintFee} SOL</p>
             
@@ -56,7 +76,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={decrementCount}
-                  disabled={mintCount <= 1}
+                  // disabled={mintCount <= 1}
                 >
                   -
                 </button>
@@ -66,7 +86,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={incrementCount}
-                  disabled={mintCount >= 10}
+                  // disabled={mintCount >= 10}
                 >
                   +
                 </button>
@@ -87,6 +107,7 @@ export default function HunterMintingFeature() {
           
         </div>
       </div>
-    </div>
+      </div>
+    </>
   )
 }
