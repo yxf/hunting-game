@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { AppHero } from '../ui/ui-layout'
+import Image from 'next/image'
 
 type HunterNFT = {
   id: string;
@@ -76,21 +77,44 @@ export default function HuntFeature() {
   }
   
   return (
-    <div>
+    <>
+      <style jsx global>{`
+        .hunting-page {
+          position: relative;
+          z-index: 0;
+        }
+        .hunting-page::before {
+          content: '';
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-image: url('/assets/hunting.png');
+          background-size: cover;
+          background-position: center;
+          z-index: -1;
+        }
+      `}</style>
+    <div className="hunting-page">
       <AppHero 
-        title={`You are Hunter ${hunterCount > 0 ? `× ${hunterCount}` : ''}`}
-        subtitle={`Hunt some bears. Today you have ${huntingTimes} time left today.`} 
+        title={`You have ${hunterCount > 0 ? ` ${hunterCount}` : ''} Hunter${hunterCount > 1 ? 's' : ''}`}
+        subtitle={`Hunt some bears! You have ${huntingTimes} hunting ${huntingTimes === 1 ? 'expedition' : 'expeditions'} remaining today.`} 
       />
       
       <div className="max-w-md mx-auto py-4 px-4 sm:px-6 lg:px-8">
+        <div className="bg-base-200 bg-opacity-60 rounded-lg p-6 backdrop-blur-sm">
         
         {!huntResult ? (
           <div className="space-y-4">
             {/* Hunter Selection */}
             <div className="relative">
               <button 
-                className="btn bg-gray-500 text-white w-40 flex justify-between items-center"
-                onClick={() => setShowHunterDropdown(!showHunterDropdown)}
+                className="input input-bordered w-full flex justify-between items-center"
+                onClick={() => {
+                  setShowHunterDropdown(!showHunterDropdown)
+                  setShowHolderDropdown(false) // Hide holder dropdown when hunter dropdown is clicked
+                }}
               >
                 {selectedHunter ? selectedHunter.name : 'Select your Hunter'} 
                 <span className="ml-2">▼</span>
@@ -115,8 +139,11 @@ export default function HuntFeature() {
             {selectedHunter && (
               <div className="relative">
                 <button 
-                  className="btn bg-gray-500 text-white w-64 flex justify-between items-center"
-                  onClick={() => setShowHolderDropdown(!showHolderDropdown)}
+                  className="input input-bordered w-full flex justify-between items-center"
+                  onClick={() => {
+                    setShowHolderDropdown(!showHolderDropdown)
+                    setShowHunterDropdown(false) // Hide hunter dropdown when holder dropdown is clicked
+                  }}
                 >
                   {selectedHolder 
                     ? `${selectedHolder.name}` 
@@ -141,15 +168,14 @@ export default function HuntFeature() {
               </div>
             )}
             
-            {/* Hunt Button - Only show if both Hunter and Holder are selected */}
-            {selectedHunter && selectedHolder && (
-              <button 
-                className="btn bg-blue-500 hover:bg-blue-600 text-white w-24"
-                onClick={performHunt}
-              >
-                Hunt
-              </button>
-            )}
+            {/* Hunt Button - Always visible but disabled until both Hunter and Holder are selected */}
+            <button 
+              className={`btn w-full ${selectedHunter && selectedHolder ? 'bg-blue-500 hover:bg-blue-600 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-70'}`}
+              onClick={performHunt}
+              disabled={!selectedHunter || !selectedHolder}
+            >
+              Hunt
+            </button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -164,7 +190,9 @@ export default function HuntFeature() {
             </button>
           </div>
         )}
+        </div>
       </div>
     </div>
+    </>
   )
 }
