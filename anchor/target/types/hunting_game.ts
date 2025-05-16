@@ -14,6 +14,65 @@ export type HuntingGame = {
   },
   "instructions": [
     {
+      "name": "breed",
+      "discriminator": [
+        215,
+        166,
+        48,
+        89,
+        209,
+        205,
+        125,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "buyBear",
       "discriminator": [
         110,
@@ -1480,6 +1539,11 @@ export type HuntingGame = {
       "code": 6009,
       "name": "alreadyHunted",
       "msg": "hunter can only hunt once per 24 hours"
+    },
+    {
+      "code": 6010,
+      "name": "breedAfter24Hours",
+      "msg": "Breed after 24 hours"
     }
   ],
   "types": [
@@ -1574,6 +1638,10 @@ export type HuntingGame = {
           },
           {
             "name": "requestUnstakeTime",
+            "type": "u64"
+          },
+          {
+            "name": "breedTime",
             "type": "u64"
           }
         ]

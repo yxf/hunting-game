@@ -455,6 +455,8 @@ pub mod hunting_game {
 
     ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(ctx.accounts.user_bear_balance.free.checked_div(100).unwrap()).unwrap();
     ctx.accounts.user_bear_balance.breed_time = now;
+
+    Ok(())
   }
 
 }
