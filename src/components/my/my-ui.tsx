@@ -78,7 +78,7 @@ export function HunterList() {
       {getAllHunters.isLoading ? (
         <span className="loading loading-spinner loading-lg"></span>
       ) : getAllHunters.data?.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-6">
           {allHunters.map((hunter) => (
             <HunterCard key={hunter.name} hunter={hunter} cluster={cluster?.network} />
           ))}
@@ -99,7 +99,7 @@ function HunterCard({ hunter, cluster }: { hunter: HunterNFT, cluster: string })
     <div>
       <div className="card bg-base-100 shadow-xl overflow-hidden">
         <figure className="px-4 pt-4">
-          <div className="relative w-full h-48 rounded-lg overflow-hidden">
+          <div className="relative w-full h-64 rounded-lg overflow-hidden">
             <Image 
               src={hunter.image} 
               alt={hunter.name}
@@ -110,7 +110,7 @@ function HunterCard({ hunter, cluster }: { hunter: HunterNFT, cluster: string })
           </div>
         </figure>
         
-        <div className="card-body">
+        <div className="card-body p-6">
           <h2 className="card-title">{hunter.name}</h2>
           
           {hunter.attributes && hunter.attributes.length > 0 && (
@@ -261,17 +261,16 @@ export function BearBalance() {
               src="/assets/bear2.png"
               alt="Bear"
               fill
-              style={{ objectFit: "cover" }}
+              style={{ objectFit: "contain" }}
               className="transition-transform hover:scale-110"
             />
           </div>
         </figure>
-        <div className="card-body">
-          <h2 className="card-title">Bear</h2>
+        <div className="card-body items-center">
           <div className="mt-2">
               <div className="grid">
                 <div className="badge badge-outline p-2 m-1">
-                    <span className="font-medium mr-1">Value:</span>
+                    <span className="font-medium mr-1">Balance:</span>
                     { userBearBalance.data.free.toString() }
                   </div>
               </div>

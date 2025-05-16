@@ -12,6 +12,7 @@ import {WalletButton} from '../solana/solana-provider'
 
 export function UiLayout({ children, links }: { children: ReactNode; links: { label: string; path: string }[] }) {
   const pathname = usePathname()
+  console.log("pathname=", pathname)
 
   return (
     <div className="h-full flex flex-col">
@@ -23,7 +24,7 @@ export function UiLayout({ children, links }: { children: ReactNode; links: { la
           <ul className="menu menu-horizontal px-1 space-x-2">
             {links.map(({ label, path }) => (
               <li key={path}>
-                <Link className={pathname.startsWith(path) ? 'active' : ''} href={path}>
+                <Link className={pathname === path ? 'active' : ''} href={path}>
                   {label}
                 </Link>
               </li>

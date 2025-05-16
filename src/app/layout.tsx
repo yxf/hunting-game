@@ -13,10 +13,12 @@ const links: { label: string; path: string }[] = [
   { label: 'Home', path: '/game-intro' },
   { label: 'Mint Hunter', path: '/hunter-minting' },
   { label: 'Bear market', path: '/bears-market' },
+  { label: 'Hunters', path: '/hunters' },
+  { label: 'Bears', path: '/bears' },
   // { label: 'Hunt', path: '/hunt' },
-  // { label: 'admin', path: '/game' },
+  { label: 'admin', path: '/game' },
   // { label: 'Account', path: '/account' },
-  { label: 'My', path: '/my' },
+  // { label: 'My', path: '/my' },
   // { label: 'Clusters', path: '/clusters' },
 ]
 
