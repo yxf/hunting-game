@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猎人捕熊游戏</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB, #3CB371);
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+        }
+
+        #gameCanvas {
+            border: 2px solid #333;
+            background-image: url('https://source.unsplash.com/800x600/?forest');
+            background-size: cover;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #scorePanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 5px;
+            font-size: 18px;
+        }
+
+        #startScreen, #gameOverScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 18px;
+            margin-top: 20px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="scorePanel">得分: <span id="score">0</span></div>
+        <div id="startScreen">
+            <h1>猎人捕熊游戏</h1>
+            <p>使用鼠标移动猎人，点击鼠标发射子弹攻击熊</p>
+            <button id="startButton">开始游戏</button>
+        </div>
+        <div id="gameOverScreen" style="display: none;">
+            <h1>游戏结束</h1>
+            <p>你的得分: <span id="finalScore">0</span></p>
+            <button id="restartButton">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        class Game {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+                this.hunter = new Hunter(this.width / 2, this.height - 100);
+                this.bears = [];
+                this.bullets = [];
+                this.score = 0;
+                this.gameOver = false;
+                this.lastBearSpawnTime = 0;
+                this.bearSpawnInterval = 3000; // 每2秒生成一只熊
+                this.mouseX = this.width / 2;
+                this.mouseY = this.height;
+
+                // 事件监听
+                this.canvas.addEventListener('mousemove', (e) => {
+                    const rect = this.canvas.getBoundingClientRect();
+                    this.mouseX = e.clientX - rect.left;
+                    this.mouseY = e.clientY - rect.top;
+                    this.hunter.x = this.mouseX;
+                });
+
+                this.canvas.addEventListener('click', () => {
+                    if (!this.gameOver) {
+                        this.bullets.push(new Bullet(this.hunter.x, this.hunter.y - 50));
+                    }
+                });
+
+                document.getElementById('startButton').addEventListener('click', () => {
+                    document.getElementById('startScreen').style.display = 'none';
+                    this.start();
+                });
+
+                document.getElementById('restartButton').addEventListener('click', () => {
+                    document.getElementById('gameOverScreen').style.display = 'none';
+                    this.reset();
+                    this.start();
+                });
+            }
+
+            start() {
+                this.gameOver = false;
+                this.animate();
+            }
+
+            reset() {
+                this.bears = [];
+                this.bullets = [];
+                this.score = 0;
+                this.gameOver = false;
+                document.getElementById('score').innerText = this.score;
+            }
+
+            spawnBear() {
+                const now = Date.now();
+                if (now - this.lastBearSpawnTime > this.bearSpawnInterval) {
+                    const x = Math.random() * (this.width - 100) + 50;
+                    const y = Math.random() * 200 + 50;
+                    const bear = new Bear(x, y);
+                    this.bears.push(bear);
+                    this.lastBearSpawnTime = now;
+                    
+                    // 随着游戏进行，加快生成速度
+                    this.bearSpawnInterval = Math.max(500, this.bearSpawnInterval - 50);
+                }
+            }
+
+            checkCollisions() {
+                // 检查子弹和熊的碰撞
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    const bullet = this.bullets[i];
+                    
+                    for (let j = this.bears.length - 1; j >= 0; j--) {
+                        const bear = this.bears[j];
+                        
+                        // 简单的矩形碰撞检测
+                        if (bullet.x < bear.x + bear.width &&
+                            bullet.x + bullet.width > bear.x &&
+                            bullet.y < bear.y + bear.height &&
+                            bullet.y + bullet.height > bear.y) {
+                            
+                            // 击中熊，减少血量
+                            bear.health -= bullet.damage;
+                            
+                            // 移除子弹
+                            this.bullets.splice(i, 1);
+                            
+                            // 如果熊没有血量了，移除它并加分
+                            if (bear.health <= 0) {
+                                this.score += bear.points;
+                                document.getElementById('score').innerText = this.score;
+                                this.bears.splice(j, 1);
+                            }
+                            
+                            break;
+                        }
+                    }
+                }
+            }
+
+            update() {
+                if (this.gameOver) return;
+
+                // 生成新的熊
+                this.spawnBear();
+                
+                // 更新猎人位置
+                this.hunter.update(this.mouseX, this.mouseY);
+                
+                // 更新所有子弹
+                for (let i = this.bullets.length - 1; i >= 0; i--) {
+                    this.bullets[i].update();
+                    
+                    // 移除超出屏幕的子弹
+                    if (this.bullets[i].y < 0) {
+                        this.bullets.splice(i, 1);
+                    }
+                }
+                
+                // 更新所有熊
+                for (let i = this.bears.length - 1; i >= 0; i--) {
+                    this.bears[i].update(this.width);
+                    
+                    // 如果熊超出了屏幕底部，游戏结束
+                    if (this.bears[i].y > this.height) {
+                        this.gameOver = true;
+                        document.getElementById('finalScore').innerText = this.score;
+                        document.getElementById('gameOverScreen').style.display = 'flex';
+                    }
+                }
+                
+                // 检测碰撞
+                this.checkCollisions();
+            }
+
+            draw() {
+                // 清除画布
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                // 绘制猎人
+                this.hunter.draw(this.ctx);
+                
+                // 绘制所有子弹
+                for (const bullet of this.bullets) {
+                    bullet.draw(this.ctx);
+                }
+                
+                // 绘制所有熊
+                for (const bear of this.bears) {
+                    bear.draw(this.ctx);
+                }
+            }
+
+            animate() {
+                if (this.gameOver) return;
+                
+                this.update();
+                this.draw();
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        class Hunter {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 50;
+                this.height = 70;
+                this.image = new Image();
+                this.image.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MCA3MCI+PHJlY3QgeD0iMjAiIHk9IjEwIiB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9IiNmZmNjOTkiLz48cmVjdCB4PSIxNSIgeT0iMjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIzMCIgZmlsbD0iIzMzOTkzMyIvPjxyZWN0IHg9IjE1IiB5PSI1MCIgd2lkdGg9IjgiIGhlaWdodD0iMTUiIGZpbGw9IiM5OTY2MzMiLz48cmVjdCB4PSIyNyIgeT0iNTAiIHdpZHRoPSI4IiBoZWlnaHQ9IjE1IiBmaWxsPSIjOTk2NjMzIi8+PHJlY3QgeD0iMzUiIHk9IjI1IiB3aWR0aD0iMTUiIGhlaWdodD0iNCIgZmlsbD0iIzY2NjY2NiIvPjwvc3ZnPg==';
+            }
+
+            update(mouseX, mouseY) {
+                // 限制猎人在画布内
+                this.x = Math.max(this.width / 2, Math.min(mouseX, 800 - this.width / 2));
+            }
+
+            draw(ctx) {
+                ctx.drawImage(this.image, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height);
+            }
+        }
+
+        class Bear {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 70;
+                this.height = 60;
+                this.speedX = (Math.random() - 0.5) * 2; // 随机左右移动
+                this.speedY = Math.random() * 0.5 + 0.2; // 向下移动速度
+                this.health = 100; // 血量
+                this.maxHealth = 100;
+                this.points = 10; // 击败得分
+                this.image = new Image();
+                this.image.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MCA2MCI+PGVsbGlwc2UgY3g9IjM1IiBjeT0iMzAiIHJ4PSIzMCIgcnk9IjI1IiBmaWxsPSIjODA2MDQwIi8+PGNpcmNsZSBjeD0iMjAiIGN5PSIxNSIgcj0iOCIgZmlsbD0iIzYwNDAyMCIvPjxjaXJjbGUgY3g9IjUwIiBjeT0iMTUiIHI9IjgiIGZpbGw9IiM2MDQwMjAiLz48ZWxsaXBzZSBjeD0iMzUiIGN5PSIzOCIgcng9IjEwIiByeT0iNyIgZmlsbD0iIzYwNDAyMCIvPjxjaXJjbGUgY3g9IjI4IiBjeT0iMjUiIHI9IjMiIGZpbGw9IiMwMDAiLz48Y2lyY2xlIGN4PSI0MiIgY3k9IjI1IiByPSIzIiBmaWxsPSIjMDAwIi8+PHBhdGggZD0iTTI4IDQwQzMwIDQ1IDQwIDQ1IDQyIDQwIiBzdHJva2U9IiM2MDQwMjAiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPjwvc3ZnPg==';
+            }
+
+            update(canvasWidth) {
+                // 更新熊的位置
+                this.x += this.speedX;
+                this.y += this.speedY;
+                
+                // 碰到左右边界时改变方向
+                if (this.x <= 0 || this.x + this.width >= canvasWidth) {
+                    this.speedX = -this.speedX;
+                }
+                
+                // 随着血量减少，熊会变红
+                this.color = `rgb(${255 - (this.health / this.maxHealth) * 175}, ${(this.health / this.maxHealth) * 60}, ${(this.health / this.maxHealth) * 40})`;
+            }
+
+            draw(ctx) {
+                // 绘制熊
+                ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+                
+                // 绘制血条
+                const healthBarWidth = this.width;
+                const healthBarHeight = 6;
+                ctx.fillStyle = '#333';
+                ctx.fillRect(this.x, this.y - 10, healthBarWidth, healthBarHeight);
+                ctx.fillStyle = 'red';
+                const healthWidth = (this.health / this.maxHealth) * healthBarWidth;
+                ctx.fillRect(this.x, this.y - 10, healthWidth, healthBarHeight);
+            }
+        }
+
+        class Bullet {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 5;
+                this.height = 15;
+                this.speed = 10;
+                this.damage = 25; // 子弹伤害
+            }
+
+            update() {
+                // 子弹向上移动
+                this.y -= this.speed;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
+            }
+        }
+
+        // 当页面加载完成后启动游戏
+        window.addEventListener('load', () => {
+            new Game();
+        });
+    </script>
+</body>
+</html>

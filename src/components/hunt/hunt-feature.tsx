@@ -90,7 +90,7 @@ export default function HuntFeature() {
           left: 0;
           width: 100%;
           height: 100%;
-          background-image: url('/assets/hunting.png');
+          // background-image: url('/assets/hunting.png');
           background-size: cover;
           background-position: center;
           z-index: -1;

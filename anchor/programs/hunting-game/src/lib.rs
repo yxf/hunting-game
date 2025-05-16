@@ -19,11 +19,12 @@ use anchor_spl::associated_token::AssociatedToken;
 use mpl_token_metadata::accounts::{ MasterEdition, Metadata as MetadataAccount };
 use mpl_token_metadata::types::{Collection, DataV2};
 
-declare_id!("EQCmne3t4y6MA3LXjPE1m6J698QKVbDrbraVZfPSzFHy");
+declare_id!("4td2N7STVV1zEyrPBbf6bEhq5LW7GkTT7kpNwt762nMW");
 
-const ADMIN_PUBKEY: Pubkey = pubkey!("88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf");
+const ADMIN_PUBKEY: Pubkey = pubkey!("56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS");
 
 const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
+const DAY: u64 = 24 * 60 * 60 * 1000;
 
 #[program]
 pub mod hunting_game {
@@ -224,6 +225,11 @@ pub mod hunting_game {
 
   pub fn initialize_lp_for_test(ctx: Context<InitializeLpForTest>) -> Result<()> {
     let sol_amount = 100 * LAMPORTS_PER_SOL;
+
+    ctx.accounts.game_state.lp_initialized = true;
+    ctx.accounts.game_state.lp_sol_balance = sol_amount;
+    ctx.accounts.game_state.lp_bear_balance = 1_000_000_000;
+
     let ix = system_instruction::transfer(
       &ctx.accounts.admin.key(),
       &ctx.accounts.game_vault.key(),
@@ -237,13 +243,11 @@ pub mod hunting_game {
         ctx.accounts.system_program.to_account_info(),
       ],
     )?;
-    ctx.accounts.game_state.lp_sol_balance = sol_amount;
-    ctx.accounts.game_state.lp_bear_balance = 1_000_000_000;
-
+    
     Ok(())
   }
 
-  pub fn buy_bear(ctx: Context<BuyBear>, paid_sol_amount: u64, min_received_bear_amount: u64) -> Result<()> {
+  pub fn buy_bear(ctx: Context<BuyBear>, paid_sol_amount: u64, min_received_bear_amount: u64, stake: bool) -> Result<()> {
     if !ctx.accounts.game_state.lp_initialized {
       return Err(ErrorCode::MintingPhase1NotFinished.into());
     }
@@ -271,7 +275,12 @@ pub mod hunting_game {
       return Err(ErrorCode::InsufficientBalance.into());
     }
 
-    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(received_bear_amount).unwrap();
+    if stake {
+      ctx.accounts.user_bear_balance.staked = ctx.accounts.user_bear_balance.staked.checked_add(received_bear_amount).unwrap();
+    } else {
+      ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(received_bear_amount).unwrap();
+    }
+    
 
     ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(paid_sol_amount).unwrap();
     ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_sub(received_bear_amount).unwrap();
@@ -325,6 +334,12 @@ pub mod hunting_game {
 
     msg!("Hunting user {} by hunter {}", user, hunter_id);
 
+    let now = Clock::get()?.unix_timestamp as u64;
+
+    if ctx.accounts.hunter.last_hunt_time + DAY > now {
+      return Err(ErrorCode::AlreadyHunted.into()); // hunter can only hunt once per day
+    }
+
     if ctx.accounts.hunter.token_id != hunter_id {
       return Err(ErrorCode::NoPermission.into()); // invalid hunter id
     }
@@ -341,7 +356,12 @@ pub mod hunting_game {
       return Err(ErrorCode::InvalidBearBalance.into()); // invalid user bear balance
     }
 
-    let hunted_amount = ctx.accounts.hunter.hunt_rate * 100;
+    if ctx.accounts.user_bear_balance.hunted_time + DAY > now {
+      return Err(ErrorCode::AlreadyHunted.into()); // already hunted
+    }
+
+    let hunted_amount = ctx.accounts.hunter.hunt_rate * 100 + ctx.accounts.hunter.hunt_rate * ctx.accounts.hunter.hunted_count / 100;
+
     if ctx.accounts.user_bear_balance.free < hunted_amount {
       return Err(ErrorCode::InsufficientBalance.into());
     }
@@ -351,10 +371,92 @@ pub mod hunting_game {
     // 20% of hunted amount to hunter
     ctx.accounts.hunter_bear_balance.free = ctx.accounts.hunter_bear_balance.free.checked_add(hunted_amount * 20 / 100).unwrap();
 
-    ctx.accounts.hunter.last_hunt_time = Clock::get()?.unix_timestamp as u64;
+    ctx.accounts.hunter.last_hunt_time = now;
+    ctx.accounts.hunter.hunted_count += 1;
+
+    ctx.accounts.user_bear_balance.hunted_time = now;
 
     Ok(())
   }
+
+
+  pub fn stake(ctx: Context<Stake>) -> Result<()> {
+    if ctx.accounts.user_bear_balance.free == 0 {
+      return Err(ErrorCode::InsufficientBalance.into()); // Not enough free bear
+    }
+    ctx.accounts.user_bear_balance.staked = ctx.accounts.user_bear_balance.staked.checked_add(ctx.accounts.user_bear_balance.free).unwrap();
+    ctx.accounts.user_bear_balance.free = 0;
+
+    Ok(())
+  }
+
+  pub fn request_unstake(ctx: Context<RequestUnstake>) -> Result<()> {
+    if ctx.accounts.user_bear_balance.staked == 0 {
+      return Err(ErrorCode::InsufficientStakedBalance.into()); // Not staked
+    }
+    ctx.accounts.user_bear_balance.request_unstake_time = Clock::get()?.unix_timestamp as u64;
+
+    Ok(())
+  }
+
+  pub fn unstake(ctx: Context<Unstake>) -> Result<()> {
+   
+    let now = Clock::get()?.unix_timestamp as u64;
+     if ctx.accounts.user_bear_balance.request_unstake_time + 3 * DAY > now {
+      return Err(ErrorCode::InsufficientBalance.into()); // unstake after 72 hours
+    }
+    let staked_duration = now - ctx.accounts.user_bear_balance.staked_time;
+
+    let mut days = staked_duration / DAY;
+
+    if staked_duration % DAY > 0 {
+      days += 1;
+    }
+
+
+    // pay days * 0.1 sol
+    let sol_amount = days * LAMPORTS_PER_SOL / 10;
+
+    let ix = system_instruction::transfer(
+      &ctx.accounts.signer.key(),
+      &ctx.accounts.game_vault.key(),
+      sol_amount,
+    );
+    invoke(
+      &ix, 
+      &[
+        ctx.accounts.signer.to_account_info(),
+        ctx.accounts.game_vault.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+      ]
+    )?;
+    ctx.accounts.user_bear_balance.staked_time = 0;
+    ctx.accounts.user_bear_balance.request_unstake_time = 0;
+
+    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(ctx.accounts.user_bear_balance.staked).unwrap();
+    ctx.accounts.user_bear_balance.staked = 0;
+    Ok(())
+  }
+
+  pub fn breed(ctx: Context<Breed>) -> Result<()> { 
+    
+    if ctx.accounts.user_bear_balance.free == 0 {
+      return Err(ErrorCode::InsufficientBalance.into()); // Not enough free bear
+    }
+    let now = Clock::get()?.unix_timestamp as u64;
+
+    if ctx.accounts.user_bear_balance.breed_time == 0 {
+      ctx.accounts.user_bear_balance.breed_time = now;
+    }
+
+    if ctx.accounts.user_bear_balance.breed_time + DAY < now {
+      return Err(ErrorCode::BreedAfter24Hours.into()); // breed after 24 hours
+    }
+
+    ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(ctx.accounts.user_bear_balance.free.checked_div(100).unwrap()).unwrap();
+    ctx.accounts.user_bear_balance.breed_time = now;
+  }
+
 }
 
 #[derive(Accounts)]
@@ -379,7 +481,7 @@ pub struct InitializeGameState<'info> {
     seeds=[b"game_vault"],
     bump
   )]
-  /// CHECK: This is safe as it's just a PDA used as vault
+  /// CHECK: This is safe as it's just a PDA used as sol vault
   game_vault: AccountInfo<'info>,
 
   #[account(
@@ -450,12 +552,6 @@ pub struct MintHunter<'info> {
   /// CHECK: This is safe as it's just a PDA used as vault
   game_vault: AccountInfo<'info>,
 
-  // #[account(
-  //   mut,
-  //   constraint = game_state.authority == authority.key()
-  // )]
-  // /// CHECK: This is safe as it's just a PDA used to check authority
-  // pub authority: AccountInfo<'info>,
 
   #[account(
       init_if_needed,
@@ -577,10 +673,8 @@ pub struct InitializeLpForTest<'info> {
   )]
   pub admin: Signer<'info>,
 
-  #[account(  
-    init,
-    payer = admin,
-    space = 8 + GameState::INIT_SPACE,
+  #[account(
+    mut,
     seeds = [b"game_state"],
     bump
   )]
@@ -615,13 +709,6 @@ pub struct InitializeLp<'info> {
   pub system_program: Program<'info, System>,
 }
 
-#[account]
-#[derive(InitSpace)]
-pub struct Hunter {
-    pub token_id: u64,
-    pub hunt_rate: u64, // 100 ~ 200,
-    pub last_hunt_time: u64,
-}
 
 #[derive(Accounts)]
 #[instruction(user: Pubkey, hunter_id: u64)]
@@ -678,6 +765,75 @@ pub struct Hunt<'info> {
     pub system_program: Program<'info, System>,
 }
 
+
+#[derive(Accounts)]
+pub struct Stake<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+   
+    #[account(
+      mut,
+      seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub user_bear_balance: Account<'info, UserBearBalance>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
+#[derive(Accounts)]
+pub struct RequestUnstake<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+   
+    #[account(
+      mut,
+      seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub user_bear_balance: Account<'info, UserBearBalance>,
+}
+
+#[derive(Accounts)]
+pub struct Unstake<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+      mut,
+      seeds=[b"game_vault"],
+      bump
+    )]
+    /// CHECK: This is safe as it's just a PDA used as vault
+    game_vault: AccountInfo<'info>,
+   
+    #[account(
+      mut,
+      seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub user_bear_balance: Account<'info, UserBearBalance>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Breed<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    #[account(
+      mut,
+      seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
+      bump
+    )]
+    pub user_bear_balance: Account<'info, UserBearBalance>,
+
+    pub system_program: Program<'info, System>,
+}
+
+
 #[account]
 #[derive(InitSpace)]
 pub struct GameState {
@@ -693,18 +849,25 @@ pub struct GameState {
 
 #[account]
 #[derive(InitSpace)]
+pub struct Hunter {
+    pub token_id: u64,
+    pub hunt_rate: u64, // [100, 200)
+    pub last_hunt_time: u64,
+    pub hunted_count: u64,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct UserBearBalance {
     pub user: Pubkey,
     pub free: u64,
     pub staked: u64,
+    pub hunted_time: u64,
+    pub staked_time: u64,
+    pub request_unstake_time: u64,
+    pub breed_time: u64
 }
 
-// #[account]
-// #[derive(InitSpace)]
-// pub struct Curve {
-//     pub sol_balance: u64,
-//     pub bear_balance: u64,
-// }
 
 #[error_code]
 pub enum ErrorCode {
@@ -731,4 +894,13 @@ pub enum ErrorCode {
 
     #[msg("Insufficient balance")]
     InsufficientBalance,
+
+     #[msg("Insufficient staked balance")]
+    InsufficientStakedBalance,
+
+    #[msg("hunter can only hunt once per 24 hours")]
+    AlreadyHunted,
+
+    #[msg("Breed after 24 hours")]
+    BreedAfter24Hours,
 }

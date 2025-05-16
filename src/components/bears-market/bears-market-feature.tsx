@@ -1,14 +1,31 @@
 'use client'
 
 import { useState } from 'react'
+import {  LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { BN } from '@coral-xyz/anchor'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { AppHero } from '../ui/ui-layout'
 import Image from 'next/image'
+import { useGameProgramTrade } from '../game/game-data-access'
+import { useGetBalance } from '../account/account-data-access'
+import { AccountBalance } from '../account/account-ui'
+
+function BalanceSol({ balance }: { balance: number }) {
+  return <span>{Math.round((balance / LAMPORTS_PER_SOL) * 100000) / 100000}</span>
+}
 
 export default function BearsMarketFeature() {
+  const { publicKey } = useWallet()
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
   const [solBalance, setSolBalance] = useState(4.9280)
   const [bearBalance, setBearBalance] = useState(14866)
   const [amount, setAmount] = useState('')
+
+  const { buyBear, sellBear, userBearBalance } = useGameProgramTrade()
+
+  const solBalanceQuery = useGetBalance({ address: publicKey! })
+
+  console.log("allUserBearBalance=", userBearBalance.data?.free.toString())
   
   const handleTabChange = (tab: 'buy' | 'sell') => {
     setActiveTab(tab)
@@ -21,9 +38,11 @@ export default function BearsMarketFeature() {
     setAmount(value)
   }
   
-  const handleBuy = () => {
+  const handleBuy = async () => {
     // This would normally connect to a blockchain operation
     console.log(`Buying BEAR with ${amount} SOL`)
+    
+    await buyBear.mutateAsync({ solAmount: new BN(amount).mul(new BN(LAMPORTS_PER_SOL)), minBearReceived: new BN(0), stake: false })
     // For UI demo purposes only
     if (parseFloat(amount) > 0) {
       setSolBalance(prev => Math.max(0, prev - parseFloat(amount)))
@@ -32,9 +51,11 @@ export default function BearsMarketFeature() {
     setAmount('')
   }
   
-  const handleSell = () => {
+  const handleSell = async () => {
     // This would normally connect to a blockchain operation
     console.log(`Selling ${amount} BEAR`)
+    await sellBear.mutateAsync({ bearAmount: new BN(amount), minSolReceived: new BN(0)})
+    
     // For UI demo purposes only
     if (parseFloat(amount) > 0 && parseFloat(amount) <= bearBalance) {
       setBearBalance(prev => Math.max(0, prev - parseFloat(amount)))
@@ -57,7 +78,7 @@ export default function BearsMarketFeature() {
           left: 0;
           width: 100%;
           height: 100%;
-          background-image: url('/assets/bears.png');
+          // background-image: url('/assets/bears.png');
           background-size: cover;
           background-position: center;
           z-index: -1;
@@ -90,9 +111,9 @@ export default function BearsMarketFeature() {
           {/* Balance display */}
           <div className="mb-6">
             {activeTab === 'buy' ? (
-              <p className="text-lg">Balance: {solBalance.toFixed(4)} SOL</p>
+              <p className="text-lg">Balance: <BalanceSol balance={ solBalanceQuery.data! }/> SOL</p>
             ) : (
-              <p className="text-lg">BEAR Balance: {bearBalance}</p>
+              <p className="text-lg">Balance: {userBearBalance.data?.free.toString()} BEAR </p>
             )}
           </div>
           
@@ -102,7 +123,6 @@ export default function BearsMarketFeature() {
               type="text"
               value={amount}
               onChange={handleAmountChange}
-              placeholder={activeTab === 'buy' ? "1.2" : "200"}
               className="input input-bordered w-full"
             />
             <span className="ml-2 text-lg">{activeTab === 'buy' ? 'SOL' : 'BEAR'}</span>
@@ -110,8 +130,8 @@ export default function BearsMarketFeature() {
           
           {/* Action button */}
           <button 
-            className="btn btn-primary btn-lg w-full text-white"
-            style={{ backgroundColor: '#4285F4' }}
+            className="btn btn-primary btn-lg w-full"
+            style={{ backgroundColor: activeTab === 'buy' ? '#4285F4' : 'red'}}
             onClick={activeTab === 'buy' ? handleBuy : handleSell}
           >
             {activeTab === 'buy' ? 'Buy' : 'Sell'}

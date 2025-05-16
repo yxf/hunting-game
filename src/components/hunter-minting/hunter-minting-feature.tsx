@@ -1,19 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useWallet } from '@solana/wallet-adapter-react'
 import { AppHero } from '../ui/ui-layout'
 import Image from 'next/image'
+import { useGameProgramMintHunter } from '../game/game-data-access'
 
 export default function HunterMintingFeature() {
   const [mintCount, setMintCount] = useState(1)
-  const [totalMinted, setTotalMinted] = useState(356)
+  // const [totalMinted, setTotalMinted] = useState(356)
   const totalSupply = 1000
   const mintFee = 0.1 // SOL
+  
+  const {mintHunterMutation, gameState} = useGameProgramMintHunter({ count:  mintCount })
+
+  const gameStateAccount = useMemo(() => {
+    if (gameState.data && gameState.data.length > 0) {
+        return gameState.data[0].account
+    }
+    return null
+    }, [gameState.data]
+  )
+
+  // console.log("gameStateAccount=", gameStateAccount?.lpSolBalance.toString())
+
+  const totalMinted = gameStateAccount?.huntersMinted.toNumber() || 0
 
   const handleMint = () => {
+
+    mintHunterMutation.mutateAsync()
     // This would normally connect to a blockchain operation
     // For UI only, we'll just update the counter
-    setTotalMinted((prev) => prev + mintCount)
+    // setTotalMinted((prev) => prev + mintCount)
     
     // In a real implementation, this would trigger a blockchain transaction
     console.log(`Minting ${mintCount} hunters for ${mintCount * mintFee} SOL`)
@@ -26,7 +44,7 @@ export default function HunterMintingFeature() {
   }
 
   const incrementCount = () => {
-    if (mintCount < 10) {
+    if (mintCount < 5) {
       setMintCount(mintCount + 1)
     }
   }
@@ -45,7 +63,7 @@ export default function HunterMintingFeature() {
           left: 0;
           width: 100%;
           height: 100%;
-          background-image: url('/assets/forest-with-hunter.png');
+          // background-image: url('/assets/forest-with-hunter.png');
           background-size: cover;
           background-position: center;
           z-index: -1;
@@ -66,7 +84,7 @@ export default function HunterMintingFeature() {
               <div className="stats shadow">
                 <div className="stat">
                   <div className="stat-value text-3xl">{totalMinted}</div>
-                  <div className="stat-desc">of {totalSupply} left</div>
+                  <div className="stat-desc">of {totalSupply}</div>
                 </div>
               </div>
             </div>
@@ -76,7 +94,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={decrementCount}
-                  // disabled={mintCount <= 1}
+                  disabled={mintCount <= 1}
                 >
                   -
                 </button>
@@ -86,7 +104,7 @@ export default function HunterMintingFeature() {
                 <button 
                   className="btn join-item" 
                   onClick={incrementCount}
-                  // disabled={mintCount >= 10}
+                  disabled={mintCount >= 5}
                 >
                   +
                 </button>
@@ -99,7 +117,7 @@ export default function HunterMintingFeature() {
             
             <button 
               className="btn btn-primary btn-lg w-full"
-              onClick={handleMint}
+              onClick={ handleMint }
             >
               Mint
             </button>

@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/hunting_game.json`.
  */
 export type HuntingGame = {
-  "address": "EQCmne3t4y6MA3LXjPE1m6J698QKVbDrbraVZfPSzFHy",
+  "address": "4td2N7STVV1zEyrPBbf6bEhq5LW7GkTT7kpNwt762nMW",
   "metadata": {
     "name": "huntingGame",
     "version": "0.1.0",
@@ -124,6 +124,10 @@ export type HuntingGame = {
         {
           "name": "minReceivedBearAmount",
           "type": "u64"
+        },
+        {
+          "name": "stake",
+          "type": "bool"
         }
       ]
     },
@@ -328,7 +332,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "gameState",
@@ -559,7 +563,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "gameState",
@@ -790,7 +794,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "gameState",
@@ -1071,6 +1075,61 @@ export type HuntingGame = {
       "args": []
     },
     {
+      "name": "requestUnstake",
+      "discriminator": [
+        44,
+        154,
+        110,
+        253,
+        160,
+        202,
+        54,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "sellBear",
       "discriminator": [
         245,
@@ -1187,6 +1246,147 @@ export type HuntingGame = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "stake",
+      "discriminator": [
+        206,
+        176,
+        202,
+        18,
+        200,
+        209,
+        179,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "unstake",
+      "discriminator": [
+        90,
+        95,
+        107,
+        42,
+        205,
+        124,
+        50,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1270,6 +1470,16 @@ export type HuntingGame = {
       "code": 6007,
       "name": "insufficientBalance",
       "msg": "Insufficient balance"
+    },
+    {
+      "code": 6008,
+      "name": "insufficientStakedBalance",
+      "msg": "Insufficient staked balance"
+    },
+    {
+      "code": 6009,
+      "name": "alreadyHunted",
+      "msg": "hunter can only hunt once per 24 hours"
     }
   ],
   "types": [
@@ -1325,6 +1535,14 @@ export type HuntingGame = {
           {
             "name": "huntRate",
             "type": "u64"
+          },
+          {
+            "name": "lastHuntTime",
+            "type": "u64"
+          },
+          {
+            "name": "huntedCount",
+            "type": "u64"
           }
         ]
       }
@@ -1344,6 +1562,18 @@ export type HuntingGame = {
           },
           {
             "name": "staked",
+            "type": "u64"
+          },
+          {
+            "name": "huntedTime",
+            "type": "u64"
+          },
+          {
+            "name": "stakedTime",
+            "type": "u64"
+          },
+          {
+            "name": "requestUnstakeTime",
             "type": "u64"
           }
         ]

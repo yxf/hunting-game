@@ -1,5 +1,5 @@
 {
-  "address": "EQCmne3t4y6MA3LXjPE1m6J698QKVbDrbraVZfPSzFHy",
+  "address": "4td2N7STVV1zEyrPBbf6bEhq5LW7GkTT7kpNwt762nMW",
   "metadata": {
     "name": "hunting_game",
     "version": "0.1.0",
@@ -118,6 +118,10 @@
         {
           "name": "min_received_bear_amount",
           "type": "u64"
+        },
+        {
+          "name": "stake",
+          "type": "bool"
         }
       ]
     },
@@ -322,7 +326,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "game_state",
@@ -553,7 +557,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "game_state",
@@ -784,7 +788,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
+          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
         },
         {
           "name": "game_state",
@@ -1065,6 +1069,61 @@
       "args": []
     },
     {
+      "name": "request_unstake",
+      "discriminator": [
+        44,
+        154,
+        110,
+        253,
+        160,
+        202,
+        54,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_bear_balance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "sell_bear",
       "discriminator": [
         245,
@@ -1181,6 +1240,147 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "stake",
+      "discriminator": [
+        206,
+        176,
+        202,
+        18,
+        200,
+        209,
+        179,
+        108
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_bear_balance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "unstake",
+      "discriminator": [
+        90,
+        95,
+        107,
+        42,
+        205,
+        124,
+        50,
+        225
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "game_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_bear_balance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1264,6 +1464,16 @@
       "code": 6007,
       "name": "InsufficientBalance",
       "msg": "Insufficient balance"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientStakedBalance",
+      "msg": "Insufficient staked balance"
+    },
+    {
+      "code": 6009,
+      "name": "AlreadyHunted",
+      "msg": "hunter can only hunt once per 24 hours"
     }
   ],
   "types": [
@@ -1319,6 +1529,14 @@
           {
             "name": "hunt_rate",
             "type": "u64"
+          },
+          {
+            "name": "last_hunt_time",
+            "type": "u64"
+          },
+          {
+            "name": "hunted_count",
+            "type": "u64"
           }
         ]
       }
@@ -1338,6 +1556,18 @@
           },
           {
             "name": "staked",
+            "type": "u64"
+          },
+          {
+            "name": "hunted_time",
+            "type": "u64"
+          },
+          {
+            "name": "staked_time",
+            "type": "u64"
+          },
+          {
+            "name": "request_unstake_time",
             "type": "u64"
           }
         ]

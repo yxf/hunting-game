@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-hunting_game = "EQCmne3t4y6MA3LXjPE1m6J698QKVbDrbraVZfPSzFHy"
+hunting_game = "4td2N7STVV1zEyrPBbf6bEhq5LW7GkTT7kpNwt762nMW"
 
 [registry]
 url = "https://api.apr.dev"
