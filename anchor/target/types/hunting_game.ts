@@ -14,22 +14,45 @@ export type HuntingGame = {
   },
   "instructions": [
     {
-      "name": "breed",
+      "name": "breedBear",
       "discriminator": [
-        215,
+        21,
         166,
-        48,
+        112,
+        81,
         89,
-        209,
-        205,
-        125,
-        11
+        167,
+        63,
+        43
       ],
       "accounts": [
         {
           "name": "signer",
           "writable": true,
           "signer": true
+        },
+        {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
         },
         {
           "name": "userBearBalance",
@@ -191,6 +214,147 @@ export type HuntingGame = {
       ]
     },
     {
+      "name": "enterIsland",
+      "discriminator": [
+        177,
+        165,
+        54,
+        19,
+        120,
+        129,
+        128,
+        205
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "exitIsland",
+      "discriminator": [
+        220,
+        10,
+        91,
+        37,
+        65,
+        109,
+        109,
+        111
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "hunt",
       "discriminator": [
         148,
@@ -260,7 +424,7 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "associatedTokenAccount",
+          "name": "hunterMintTokenAccount",
           "writable": true
         },
         {
@@ -440,28 +604,6 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "bearMint",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  98,
-                  101,
-                  97,
-                  114,
-                  95,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
           "name": "hunterCollectionMint",
           "writable": true,
           "pda": {
@@ -497,7 +639,7 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "associatedTokenAccount",
+          "name": "hunterCollectionTokenAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -606,16 +748,16 @@ export type HuntingGame = {
       "args": []
     },
     {
-      "name": "initializeLp",
+      "name": "initializeBearPool",
       "discriminator": [
-        110,
-        252,
-        116,
-        251,
-        81,
-        191,
-        57,
-        96
+        55,
+        154,
+        93,
+        203,
+        130,
+        106,
+        83,
+        88
       ],
       "accounts": [
         {
@@ -671,182 +813,23 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "bearMint",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  98,
-                  101,
-                  97,
-                  114,
-                  95,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "hunterCollectionMint",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  104,
-                  117,
-                  110,
-                  116,
-                  101,
-                  114,
-                  95,
-                  99,
-                  111,
-                  108,
-                  108,
-                  101,
-                  99,
-                  116,
-                  105,
-                  111,
-                  110,
-                  95,
-                  109,
-                  105,
-                  110,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "associatedTokenAccount",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "account",
-                "path": "admin"
-              },
-              {
-                "kind": "const",
-                "value": [
-                  6,
-                  221,
-                  246,
-                  225,
-                  215,
-                  101,
-                  161,
-                  147,
-                  217,
-                  203,
-                  225,
-                  70,
-                  206,
-                  235,
-                  121,
-                  172,
-                  28,
-                  180,
-                  133,
-                  237,
-                  95,
-                  91,
-                  55,
-                  145,
-                  58,
-                  140,
-                  245,
-                  133,
-                  126,
-                  255,
-                  0,
-                  169
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "hunterCollectionMint"
-              }
-            ],
-            "program": {
-              "kind": "const",
-              "value": [
-                140,
-                151,
-                37,
-                143,
-                78,
-                36,
-                137,
-                241,
-                187,
-                61,
-                16,
-                41,
-                20,
-                142,
-                13,
-                131,
-                11,
-                90,
-                19,
-                153,
-                218,
-                255,
-                16,
-                132,
-                4,
-                142,
-                123,
-                216,
-                219,
-                233,
-                248,
-                89
-              ]
-            }
-          }
-        },
-        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "tokenProgram",
-          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        },
-        {
-          "name": "associatedTokenProgram",
-          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": []
     },
     {
-      "name": "initializeLpForTest",
+      "name": "initializeBearPoolForTest",
       "discriminator": [
-        74,
-        164,
-        157,
-        9,
-        242,
-        19,
-        229,
-        87
+        181,
+        29,
+        52,
+        97,
+        151,
+        205,
+        187,
+        199
       ],
       "accounts": [
         {
@@ -1002,7 +985,7 @@ export type HuntingGame = {
           }
         },
         {
-          "name": "associatedTokenAccount",
+          "name": "hunterMintTokenAccount",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1134,16 +1117,241 @@ export type HuntingGame = {
       "args": []
     },
     {
-      "name": "requestUnstake",
+      "name": "mintHunter2",
       "discriminator": [
-        44,
+        185,
+        139,
         154,
+        79,
+        156,
         110,
-        253,
+        58,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "gameVault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "hunterMint",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  95,
+                  109,
+                  105,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "game_state.hunters_minted.checked_add(1)",
+                "account": "gameState"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hunterMintTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "signer"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hunterMint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "hunter",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "hunterMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "requestExitIsland",
+      "discriminator": [
         160,
-        202,
-        54,
-        34
+        143,
+        37,
+        140,
+        89,
+        106,
+        145,
+        163
       ],
       "accounts": [
         {
@@ -1289,10 +1497,6 @@ export type HuntingGame = {
         {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
-        },
-        {
-          "name": "rent",
-          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
@@ -1305,147 +1509,6 @@ export type HuntingGame = {
           "type": "u64"
         }
       ]
-    },
-    {
-      "name": "stake",
-      "discriminator": [
-        206,
-        176,
-        202,
-        18,
-        200,
-        209,
-        179,
-        108
-      ],
-      "accounts": [
-        {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "userBearBalance",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114,
-                  95,
-                  98,
-                  101,
-                  97,
-                  114,
-                  95,
-                  98,
-                  97,
-                  108,
-                  97,
-                  110,
-                  99,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "signer"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
-    },
-    {
-      "name": "unstake",
-      "discriminator": [
-        90,
-        95,
-        107,
-        42,
-        205,
-        124,
-        50,
-        225
-      ],
-      "accounts": [
-        {
-          "name": "signer",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "gameVault",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  103,
-                  97,
-                  109,
-                  101,
-                  95,
-                  118,
-                  97,
-                  117,
-                  108,
-                  116
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "name": "userBearBalance",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114,
-                  95,
-                  98,
-                  101,
-                  97,
-                  114,
-                  95,
-                  98,
-                  97,
-                  108,
-                  97,
-                  110,
-                  99,
-                  101
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "signer"
-              }
-            ]
-          }
-        },
-        {
-          "name": "systemProgram",
-          "address": "11111111111111111111111111111111"
-        }
-      ],
-      "args": []
     }
   ],
   "accounts": [
@@ -1492,56 +1555,71 @@ export type HuntingGame = {
   "errors": [
     {
       "code": 6000,
+      "name": "invalidOwner",
+      "msg": "Invalid owner"
+    },
+    {
+      "code": 6001,
       "name": "gameAlreadyInitialized",
       "msg": "Game state already initialized"
     },
     {
-      "code": 6001,
+      "code": 6002,
       "name": "lpAlreadyInitialized",
       "msg": "Liquidity pool is already initialized"
     },
     {
-      "code": 6002,
+      "code": 6003,
+      "name": "hunterAlreadyMinted",
+      "msg": "This hunter is already minted"
+    },
+    {
+      "code": 6004,
+      "name": "mintingPhase1Finished",
+      "msg": "Minting phase 1 is finished"
+    },
+    {
+      "code": 6005,
       "name": "mintingPhase1NotFinished",
       "msg": "Minting phase 1 is not finished"
     },
     {
-      "code": 6003,
+      "code": 6006,
       "name": "noPermission",
       "msg": "No permission to access this account"
     },
     {
-      "code": 6004,
+      "code": 6007,
       "name": "invalidHunterMint",
       "msg": "Invaid hunter mint"
     },
     {
-      "code": 6005,
+      "code": 6008,
       "name": "notHunterOwner",
       "msg": "Not hunter owner"
     },
     {
-      "code": 6006,
+      "code": 6009,
       "name": "invalidBearBalance",
       "msg": "Invalid bear balance"
     },
     {
-      "code": 6007,
+      "code": 6010,
       "name": "insufficientBalance",
       "msg": "Insufficient balance"
     },
     {
-      "code": 6008,
+      "code": 6011,
       "name": "insufficientStakedBalance",
       "msg": "Insufficient staked balance"
     },
     {
-      "code": 6009,
+      "code": 6012,
       "name": "alreadyHunted",
       "msg": "hunter can only hunt once per 24 hours"
     },
     {
-      "code": 6010,
+      "code": 6013,
       "name": "breedAfter24Hours",
       "msg": "Breed after 24 hours"
     }
@@ -1557,10 +1635,6 @@ export type HuntingGame = {
             "type": "bool"
           },
           {
-            "name": "authority",
-            "type": "pubkey"
-          },
-          {
             "name": "hunterCollectionMint",
             "type": "pubkey"
           },
@@ -1573,8 +1647,8 @@ export type HuntingGame = {
             "type": "bool"
           },
           {
-            "name": "bearMint",
-            "type": "pubkey"
+            "name": "totalSupply",
+            "type": "u64"
           },
           {
             "name": "lpSolBalance",
