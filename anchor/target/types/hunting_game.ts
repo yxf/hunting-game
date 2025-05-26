@@ -291,6 +291,29 @@ export type HuntingGame = {
           "signer": true
         },
         {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "gameVault",
           "writable": true,
           "pda": {
@@ -555,7 +578,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "gameState",
@@ -764,7 +787,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "gameState",
@@ -836,7 +859,7 @@ export type HuntingGame = {
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "gameState",
@@ -1509,6 +1532,153 @@ export type HuntingGame = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "setRequestExitIslandTimestamp",
+      "discriminator": [
+        250,
+        29,
+        169,
+        87,
+        157,
+        181,
+        245,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "timestamp",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "setTimestampForTest",
+      "discriminator": [
+        228,
+        90,
+        153,
+        230,
+        79,
+        193,
+        133,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "gameState",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "userBearBalance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "timestamp",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1565,8 +1735,8 @@ export type HuntingGame = {
     },
     {
       "code": 6002,
-      "name": "lpAlreadyInitialized",
-      "msg": "Liquidity pool is already initialized"
+      "name": "bearPoolAlreadyInitialized",
+      "msg": "Bear liquidity pool is already initialized"
     },
     {
       "code": 6003,
@@ -1575,13 +1745,13 @@ export type HuntingGame = {
     },
     {
       "code": 6004,
-      "name": "mintingPhase1Finished",
-      "msg": "Minting phase 1 is finished"
+      "name": "mintingPhase1Ended",
+      "msg": "Minting phase 1 is ended"
     },
     {
       "code": 6005,
-      "name": "mintingPhase1NotFinished",
-      "msg": "Minting phase 1 is not finished"
+      "name": "mintingPhase1NotEnded",
+      "msg": "Minting phase 1 is not ended"
     },
     {
       "code": 6006,
@@ -1610,18 +1780,28 @@ export type HuntingGame = {
     },
     {
       "code": 6011,
+      "name": "insufficientOutputAmount",
+      "msg": "Insufficient output amount"
+    },
+    {
+      "code": 6012,
       "name": "insufficientStakedBalance",
       "msg": "Insufficient staked balance"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "alreadyHunted",
       "msg": "hunter can only hunt once per 24 hours"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "breedAfter24Hours",
       "msg": "Breed after 24 hours"
+    },
+    {
+      "code": 6015,
+      "name": "exitIslandNotAllowed",
+      "msg": "Exit island is not allowed"
     }
   ],
   "types": [

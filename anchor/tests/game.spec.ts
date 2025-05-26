@@ -61,13 +61,13 @@ export async function findMetadataPda(
 describe('HuntingGame', () => {
   // Configure the client to use the local cluster.
   const provider = anchor.AnchorProvider.env()
-
+  console.log("provider=", provider);
+  
   anchor.setProvider(provider)
   const payer = provider.wallet as anchor.Wallet
-  const homeDir = os.homedir();
+  
   const program = anchor.workspace.HuntingGame as Program<HuntingGame>
-
-  const seed = JSON.parse(fs.readFileSync(`${homeDir}/.config/solana/id.json`, 'utf-8'))
+  const seed = JSON.parse(fs.readFileSync(`${os.homedir()}/.config/solana/id.json`, 'utf-8'))
   const adminKeypair = Keypair.fromSecretKey(new Uint8Array(seed))
 
 

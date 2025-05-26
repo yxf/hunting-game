@@ -285,6 +285,29 @@
           "signer": true
         },
         {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "game_vault",
           "writable": true,
           "pda": {
@@ -549,7 +572,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "game_state",
@@ -758,7 +781,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "game_state",
@@ -830,7 +853,7 @@
           "name": "admin",
           "writable": true,
           "signer": true,
-          "address": "56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS"
+          "address": "88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf"
         },
         {
           "name": "game_state",
@@ -1503,6 +1526,153 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "set_request_exit_island_timestamp",
+      "discriminator": [
+        250,
+        29,
+        169,
+        87,
+        157,
+        181,
+        245,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_bear_balance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "timestamp",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "set_timestamp_for_test",
+      "discriminator": [
+        228,
+        90,
+        153,
+        230,
+        79,
+        193,
+        133,
+        69
+      ],
+      "accounts": [
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "game_state",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  97,
+                  109,
+                  101,
+                  95,
+                  115,
+                  116,
+                  97,
+                  116,
+                  101
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_bear_balance",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  98,
+                  101,
+                  97,
+                  114,
+                  95,
+                  98,
+                  97,
+                  108,
+                  97,
+                  110,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "signer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "timestamp",
+          "type": "u64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1559,8 +1729,8 @@
     },
     {
       "code": 6002,
-      "name": "LpAlreadyInitialized",
-      "msg": "Liquidity pool is already initialized"
+      "name": "BearPoolAlreadyInitialized",
+      "msg": "Bear liquidity pool is already initialized"
     },
     {
       "code": 6003,
@@ -1569,13 +1739,13 @@
     },
     {
       "code": 6004,
-      "name": "MintingPhase1Finished",
-      "msg": "Minting phase 1 is finished"
+      "name": "MintingPhase1Ended",
+      "msg": "Minting phase 1 is ended"
     },
     {
       "code": 6005,
-      "name": "MintingPhase1NotFinished",
-      "msg": "Minting phase 1 is not finished"
+      "name": "MintingPhase1NotEnded",
+      "msg": "Minting phase 1 is not ended"
     },
     {
       "code": 6006,
@@ -1604,18 +1774,28 @@
     },
     {
       "code": 6011,
+      "name": "InsufficientOutputAmount",
+      "msg": "Insufficient output amount"
+    },
+    {
+      "code": 6012,
       "name": "InsufficientStakedBalance",
       "msg": "Insufficient staked balance"
     },
     {
-      "code": 6012,
+      "code": 6013,
       "name": "AlreadyHunted",
       "msg": "hunter can only hunt once per 24 hours"
     },
     {
-      "code": 6013,
+      "code": 6014,
       "name": "BreedAfter24Hours",
       "msg": "Breed after 24 hours"
+    },
+    {
+      "code": 6015,
+      "name": "ExitIslandNotAllowed",
+      "msg": "Exit island is not allowed"
     }
   ],
   "types": [

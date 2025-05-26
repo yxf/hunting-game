@@ -5,6 +5,7 @@ pub mod utils;
 pub mod error;
 pub mod states;
 pub mod instructions;
+pub mod curve;
 
 use instructions::*;
 
@@ -12,18 +13,12 @@ declare_id!("4td2N7STVV1zEyrPBbf6bEhq5LW7GkTT7kpNwt762nMW");
 
 pub mod admin {
   use super::{pubkey, Pubkey};
-  pub const ID: Pubkey = pubkey!("56LCisjxabaqa2zou4KSjxrPVudEXy7McqPEzx5GvfaS");
+  pub const ID: Pubkey = pubkey!("88be4vXQGw9za3YCukkdLJSNhyvsnTMbgFWttevBfShf");
 }
 
 pub mod constants {
   pub const LAMPORTS_PER_SOL: u64 = 1_000_000_000;
-  pub const DAY: u64 = 24 * 60 * 60 * 1000;
-
-  // pub const GAME_VAULT_SEED: &[u8] = b"game_vault";
-  // pub const GAME_STATE_SEED: &[u8] = b"game_state";
-  // pub const HUNTER_MINT_SEED: &[u8] = b"hunter_mint";
-  // pub const HUNTER_SEED: &[u8] = b"hunter";
-  // pub const USER_BEAR_BALANCE_SEED: &[u8] = b"user_bear_balance";
+  pub const DAY: u64 = 24 * 60 * 60;
 }
 
 
@@ -41,7 +36,7 @@ pub mod hunting_game {
 
   #[cfg(not(feature = "mainnet"))]
   pub fn initialize_bear_pool_for_test(ctx: Context<InitializeBearPool>) -> Result<()> {
-    instructions::initialize_bear_pool(ctx)
+    instructions::initialize_bear_pool_for_test(ctx)
   }
 
   pub fn mint_hunter(ctx: Context<MintHunter>) -> Result<()> {
@@ -64,6 +59,11 @@ pub mod hunting_game {
     instructions::breed_bear(ctx)
   }
 
+  #[cfg(not(feature = "mainnet"))]
+  pub fn set_timestamp_for_test(ctx: Context<Breed>, timestamp: u64) -> Result<()> { 
+    instructions::set_timestamp_for_test(ctx, timestamp)
+  }
+
   pub fn hunt(ctx: Context<Hunt>, user: Pubkey, hunter_id: u64) -> Result<()> {
     instructions::hunt(ctx, user, hunter_id)
   }
@@ -74,6 +74,11 @@ pub mod hunting_game {
 
   pub fn request_exit_island(ctx: Context<RequestExitIsland>) -> Result<()> {
     instructions::request_exit_island(ctx)
+  }
+
+   #[cfg(not(feature = "mainnet"))]
+  pub fn set_request_exit_island_timestamp(ctx: Context<RequestExitIsland>, timestamp: u64) -> Result<()> { 
+    instructions::set_request_exit_island_timestamp(ctx, timestamp)
   }
 
   pub fn exit_island(ctx: Context<ExitIsland>) -> Result<()> {

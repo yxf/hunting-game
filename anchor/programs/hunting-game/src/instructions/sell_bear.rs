@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use crate::states::*;
 use crate::utils;
 use crate::error::ErrorCode;
+use crate::curve::Curve;
 
 #[derive(Accounts)]
 pub struct SellBear<'info> {
@@ -26,7 +27,8 @@ pub struct SellBear<'info> {
   #[account(
     mut,
     seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
-    bump
+    bump,
+    constraint = seller_bear_balance.user == signer.key()
   )]
   pub seller_bear_balance: Account<'info, UserBearBalance>,
   
@@ -35,37 +37,38 @@ pub struct SellBear<'info> {
 
 
 pub fn sell_bear(ctx: Context<SellBear>, send_bear_amount: u64, min_received_sol_amount: u64) -> Result<()> {
-  if !ctx.accounts.game_state.lp_initialized {
-      return Err(ErrorCode::MintingPhase1NotFinished.into());
-  }
-
-  if ctx.accounts.seller_bear_balance.free < send_bear_amount {
-      return Err(ErrorCode::InsufficientBalance.into());
-  }
+  require_gt!(send_bear_amount, 0);
+  require!(ctx.accounts.game_state.lp_initialized, ErrorCode::MintingPhase1NotEnded);
+  require!(ctx.accounts.seller_bear_balance.free >= send_bear_amount, ErrorCode::InsufficientBalance);
 
   let bump = ctx.bumps.game_vault;
   let signer_seeds: &[&[&[u8]]] = &[&[b"game_vault", &[bump]]];
 
-  let real_bear_amount = send_bear_amount - send_bear_amount / 100; // 1% fee to lp
-  let received_sol_amount = real_bear_amount * ctx.accounts.game_state.lp_bear_balance / (ctx.accounts.game_state.lp_sol_balance - real_bear_amount);
+  let received_sol_amount = Curve::exact_x_input(
+    send_bear_amount as u128,
+    ctx.accounts.game_state.lp_bear_balance as u128,
+    ctx.accounts.game_state.lp_sol_balance as u128
+  ) as u64;
 
-  if received_sol_amount < min_received_sol_amount {
-      return Err(ErrorCode::InsufficientBalance.into());
-  }
-
+  let fees = received_sol_amount.checked_mul(3).unwrap().checked_div(100).unwrap(); // 3% fee to lp
+  let sol_amount = received_sol_amount.checked_sub(fees).unwrap();
+  
+  require!(sol_amount >= min_received_sol_amount, ErrorCode::InsufficientOutputAmount);
+  
   ctx.accounts.game_state.lp_bear_balance = ctx.accounts.game_state.lp_bear_balance.checked_add(send_bear_amount).unwrap();
-  ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_sub(received_sol_amount).unwrap();
+  ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_sub(sol_amount).unwrap();
 
   utils::transfer_sol_from_vault_to_user(
       ctx.accounts.game_vault.to_account_info(), 
       ctx.accounts.signer.to_account_info(), 
       ctx.accounts.system_program.to_account_info(), 
-      received_sol_amount,
+      sol_amount,
       signer_seeds
   )?;
 
   ctx.accounts.seller_bear_balance.free = ctx.accounts.seller_bear_balance.free.checked_sub(send_bear_amount).unwrap();
   ctx.accounts.seller_bear_balance.breed_time = Clock::get()?.unix_timestamp as u64;
+
   Ok(())
 }
 

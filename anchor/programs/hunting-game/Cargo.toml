@@ -10,6 +10,9 @@ name = "hunting_game"
 
 [features]
 default = []
+mainnet = []
+devnet = []
+localnet = []
 cpi = ["no-entrypoint"]
 no-entrypoint = []
 no-idl = []
@@ -23,3 +26,4 @@ idl-build = [
 anchor-lang = { version = "0.31.0", features = ["init-if-needed"] }
 anchor-spl = { version = "0.31.0", features = ["metadata"]}
 mpl-token-metadata = "5.1.0"
+uint = "0.10.0"

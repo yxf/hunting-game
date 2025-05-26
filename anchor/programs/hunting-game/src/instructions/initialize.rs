@@ -4,17 +4,10 @@ use anchor_lang::solana_program::program::invoke_signed;
 use anchor_spl::token::{
   mint_to, Mint, MintTo, Token, TokenAccount
 };
-use anchor_spl::metadata::{
-  CreateMetadataAccountsV3, 
-  CreateMasterEditionV3,
-  create_master_edition_v3,
-  create_metadata_accounts_v3,
-  Metadata,
-};
+use anchor_spl::metadata::Metadata;
 use anchor_spl::associated_token::AssociatedToken;
 
 use mpl_token_metadata::accounts::{ MasterEdition, Metadata as MetadataAccount };
-use mpl_token_metadata::types::{ Collection, DataV2 };
 
 use crate::states::*;
 use crate::utils;
@@ -51,6 +44,7 @@ pub struct Initialize<'info> {
     payer = admin,
     mint::decimals = 0,
     mint::authority = hunter_collection_mint,
+    mint::freeze_authority = hunter_collection_mint,
     seeds = [b"hunter_collection_mint"],
     bump
   )]
@@ -64,20 +58,24 @@ pub struct Initialize<'info> {
   )]
   pub hunter_collection_token_account: Account<'info, TokenAccount>,
 
-  // #[account(
-  //   mut,
-  //   address = MetadataAccount::find_pda(&hunter_collection_mint.key()).0
-  // )]
-  // /// CHECK: This is safe as it's just a PDA used for signing
-  // pub metadata_account: AccountInfo<'info>,
+   #[cfg(not(feature = "localnet"))]
+  #[account(
+    mut,
+    address = MetadataAccount::find_pda(&hunter_collection_mint.key()).0
+  )]
+  /// CHECK: This is safe as it's just a PDA used for metadata
+  pub metadata_account: AccountInfo<'info>,
 
-  // #[account(
-  //   mut,
-  //   address = MasterEdition::find_pda(&hunter_collection_mint.key()).0
-  // )]
-  // /// CHECK: This is safe as it's just a PDA used for signing
-  // pub master_edition_account: AccountInfo<'info>,
+   #[cfg(not(feature = "localnet"))]
+  #[account(
+    mut,
+    address = MasterEdition::find_pda(&hunter_collection_mint.key()).0
+  )]
+  /// CHECK: This is safe as it's just a PDA used for metadata
+  pub master_edition_account: AccountInfo<'info>,
 
+   #[cfg(not(feature = "localnet"))]
+  pub token_metadata_program: Program<'info, Metadata>,
   pub system_program: Program<'info, System>,
   pub token_program: Program<'info, Token>,
   pub associated_token_program: Program<'info, AssociatedToken>,
@@ -94,11 +92,10 @@ pub struct InitializeBearPool<'info> {
   pub admin: Signer<'info>,
 
   #[account(
-    init,
-    payer = admin,
-    space = 8 + GameState::INIT_SPACE,
+    mut,
     seeds = [b"game_state"],
-    bump
+    bump,
+    constraint = game_state.game_initialized == true
   )]
   pub game_state: Account<'info, GameState>,
 
@@ -114,9 +111,7 @@ pub struct InitializeBearPool<'info> {
 }
 
 pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-  if ctx.accounts.game_state.game_initialized {
-    return Err(ErrorCode::GameAlreadyInitialized.into());
-  }
+  require!(!ctx.accounts.game_state.game_initialized, ErrorCode::GameAlreadyInitialized);
 
   ctx.accounts.game_state.hunters_minted = 0;
   ctx.accounts.game_state.lp_initialized = false;
@@ -159,60 +154,29 @@ pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
       &[&seeds],
   )?;
 
-  // let cpi_context = CpiContext::new(
-  //   ctx.accounts.token_metadata_program.to_account_info(),
-  //   CreateMetadataAccountsV3 {
-  //       metadata: ctx.accounts.metadata_account.to_account_info(),
-  //       mint: ctx.accounts.hunter_collection_mint.to_account_info(),
-  //       mint_authority: ctx.accounts.admin.to_account_info(),
-  //       update_authority: ctx.accounts.admin.to_account_info(),
-  //       payer: ctx.accounts.admin.to_account_info(),
-  //       system_program: ctx.accounts.system_program.to_account_info(),
-  //       rent: ctx.accounts.rent.to_account_info(),
-  //   }
-  // );
-
-  // let data_v2 = DataV2 {
-  //     name: "Hunter".to_string(),
-  //     symbol: "Hunter".to_string(),
-  //     uri: uri,
-  //     seller_fee_basis_points: 0,
-  //     creators: None,
-  //     collection: None,
-  //     uses: None,
-  // };
-
-  // create_metadata_accounts_v3(cpi_context, data_v2, false, true, None)?;
-
-  // create master edition account
-  // let cpi_context = CpiContext::new(
-  //     ctx.accounts.token_metadata_program.to_account_info(),
-  //     CreateMasterEditionV3 {
-  //         edition: ctx.accounts.master_edition_account.to_account_info(),
-  //         mint: ctx.accounts.hunter_collection_mint.to_account_info(),
-  //         update_authority: ctx.accounts.admin.to_account_info(),
-  //         mint_authority: ctx.accounts.admin.to_account_info(),
-  //         payer: ctx.accounts.admin.to_account_info(),
-  //         metadata: ctx.accounts.metadata_account.to_account_info(),
-  //         token_program: ctx.accounts.token_program.to_account_info(),
-  //         system_program: ctx.accounts.system_program.to_account_info(),
-  //         rent: ctx.accounts.rent.to_account_info(),
-  //     },
-  // );
-
-  // create_master_edition_v3(cpi_context, None)?;
+  #[cfg(not(feature = "localnet"))]
+  utils::create_nft_metadata(
+    ctx.accounts.token_metadata_program.to_account_info(),
+    ctx.accounts.metadata_account.to_account_info(),
+    ctx.accounts.master_edition_account.to_account_info(),
+    ctx.accounts.token_program.to_account_info(),
+    ctx.accounts.hunter_collection_mint.to_account_info(),
+    ctx.accounts.admin.to_account_info(),
+    ctx.accounts.admin.to_account_info(),
+    ctx.accounts.system_program.to_account_info(),
+    ctx.accounts.rent.to_account_info(),
+    None,
+    "Hunter".to_string(), // name
+    "HUNTER".to_string(), // symbol
+    "uri".to_string() // uri
+  )?;
 
   Ok(())
 }
 
 pub fn initialize_bear_pool(ctx: Context<InitializeBearPool>) -> Result<()> {
-  if !ctx.accounts.game_state.lp_initialized {
-    return Err(ErrorCode::LpAlreadyInitialized.into());
-  }
-
-  if ctx.accounts.game_state.hunters_minted < 1000 {
-    return Err(ErrorCode::MintingPhase1NotFinished.into());
-  }
+  require!(!ctx.accounts.game_state.lp_initialized, ErrorCode::BearPoolAlreadyInitialized);
+  require!(ctx.accounts.game_state.hunters_minted == 1000, ErrorCode::MintingPhase1NotEnded);
 
   require_gt!(ctx.accounts.game_vault.lamports(), 100 * LAMPORTS_PER_SOL);
 

@@ -5,6 +5,7 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::states::*;
 use crate::error::ErrorCode;
 use crate::constants::*;
+use crate::utils;
 
 #[derive(Accounts)]
 #[instruction(user: Pubkey, hunter_id: u64)]
@@ -44,7 +45,8 @@ pub struct Hunt<'info> {
     #[account(
       mut,
       seeds = [b"user_bear_balance".as_ref(), user.key().as_ref()],
-      bump
+      bump,
+      constraint = user_bear_balance.user == user
     )]
     pub user_bear_balance: Account<'info, UserBearBalance>,
 
@@ -63,50 +65,32 @@ pub struct Hunt<'info> {
 
 
 pub fn hunt(ctx: Context<Hunt>, user: Pubkey, hunter_id: u64) -> Result<()> {
+    let now = utils::get_current_timestamp();
 
-    msg!("Hunting user {} by hunter {}", user, hunter_id);
-
-    let now = Clock::get()?.unix_timestamp as u64;
-
-    if ctx.accounts.hunter.last_hunt_time + DAY > now {
-        return Err(ErrorCode::AlreadyHunted.into()); // hunter can only hunt once per day
-    }
-
-    if ctx.accounts.hunter.token_id != hunter_id {
-        return Err(ErrorCode::NoPermission.into()); // invalid hunter id
-    }
-
-    if ctx.accounts.hunter_mint.supply == 0 {
-        return Err(ErrorCode::InvalidHunterMint.into()); // no hunter
-    }
-
-    if ctx.accounts.hunter_mint_token_account.owner != ctx.accounts.signer.key() {
-        return Err(ErrorCode::NotHunterOwner.into()); // not hunter owner
-    }
-
-    if ctx.accounts.user_bear_balance.user != user {
-        return Err(ErrorCode::InvalidBearBalance.into()); // invalid user bear balance
-    }
-
-    if ctx.accounts.user_bear_balance.hunted_time + DAY > now {
-        return Err(ErrorCode::AlreadyHunted.into()); // already hunted
-    }
+    require!(ctx.accounts.hunter.last_hunt_time + DAY < now, ErrorCode::AlreadyHunted);
+    require!(ctx.accounts.hunter.token_id == hunter_id, ErrorCode::NoPermission); // invalid hunter id
+    require!(ctx.accounts.hunter_mint.supply == 1, ErrorCode::InvalidHunterMint); // invalid hunter mint
+    require!(ctx.accounts.hunter_mint_token_account.owner == ctx.accounts.signer.key(), ErrorCode::NotHunterOwner); // invalid hunter mint
+    require!(ctx.accounts.user_bear_balance.user == user, ErrorCode::InvalidBearBalance);
+    require!(ctx.accounts.user_bear_balance.hunted_time + DAY < now, ErrorCode::AlreadyHunted); // already hunted
+    require!(ctx.accounts.user_bear_balance.free > 0, ErrorCode::InsufficientBalance); // insufficient balance
 
     let hunted_amount = ctx.accounts.hunter.hunt_rate * 100 + ctx.accounts.hunter.hunt_rate * ctx.accounts.hunter.hunted_count / 100;
-
-    if ctx.accounts.user_bear_balance.free < hunted_amount {
-        return Err(ErrorCode::InsufficientBalance.into());
-    }
-
+    require!(ctx.accounts.user_bear_balance.free > hunted_amount, ErrorCode::InsufficientBalance); // hunted amount should be greater than 0
+   
     ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_sub(hunted_amount).unwrap(); 
 
     // 20% of hunted amount to hunter
     let rewards = hunted_amount * 20 / 100;
     let burned_amount = hunted_amount  - rewards;
+    if ctx.accounts.hunter_bear_balance.user == Pubkey::default() {
+        ctx.accounts.hunter_bear_balance.user = ctx.accounts.signer.key();
+    }
+    ctx.accounts.hunter_bear_balance.user = ctx.accounts.signer.key();
     ctx.accounts.hunter_bear_balance.free = ctx.accounts.hunter_bear_balance.free.checked_add(rewards).unwrap();
     ctx.accounts.hunter_bear_balance.breed_time = now;
-    ctx.accounts.game_state.total_supply = ctx.accounts.game_state.total_supply.checked_sub(burned_amount).unwrap();
 
+    ctx.accounts.game_state.total_supply = ctx.accounts.game_state.total_supply.checked_sub(burned_amount).unwrap();
 
     ctx.accounts.hunter.last_hunt_time = now;
     ctx.accounts.hunter.hunted_count += 1;

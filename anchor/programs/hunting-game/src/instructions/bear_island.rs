@@ -13,7 +13,8 @@ pub struct EnterIsland<'info> {
     #[account(
       mut,
       seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
-      bump
+      bump,
+      constraint = user_bear_balance.user == signer.key()
     )]
     pub user_bear_balance: Account<'info, UserBearBalance>,
 
@@ -28,7 +29,8 @@ pub struct RequestExitIsland<'info> {
     #[account(
       mut,
       seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
-      bump
+      bump,
+      constraint = user_bear_balance.user == signer.key()
     )]
     pub user_bear_balance: Account<'info, UserBearBalance>,
 }
@@ -37,6 +39,13 @@ pub struct RequestExitIsland<'info> {
 pub struct ExitIsland<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"game_state"],
+        bump
+    )]
+    pub game_state: Account<'info, GameState>,
 
     #[account(
       mut,
@@ -49,7 +58,8 @@ pub struct ExitIsland<'info> {
     #[account(
       mut,
       seeds = [b"user_bear_balance".as_ref(), signer.key().as_ref()],
-      bump
+      bump,
+      constraint = user_bear_balance.user == signer.key()
     )]
     pub user_bear_balance: Account<'info, UserBearBalance>,
 
@@ -59,54 +69,45 @@ pub struct ExitIsland<'info> {
 
 
 pub fn enter_island(ctx: Context<EnterIsland>) -> Result<()> {
-    if ctx.accounts.user_bear_balance.free == 0 {
-        return Err(ErrorCode::InsufficientBalance.into()); // Not enough free bear
-    }
+    require!(ctx.accounts.user_bear_balance.free > 0, ErrorCode::InsufficientBalance); // // Not enough free bear
+
     ctx.accounts.user_bear_balance.staked = ctx.accounts.user_bear_balance.staked.checked_add(ctx.accounts.user_bear_balance.free).unwrap();
     ctx.accounts.user_bear_balance.free = 0;
+    ctx.accounts.user_bear_balance.staked_time = utils::get_current_timestamp();
 
     Ok(())
 }
 
 pub fn request_exit_island(ctx: Context<RequestExitIsland>) -> Result<()> {
-    if ctx.accounts.user_bear_balance.staked == 0 {
-      return Err(ErrorCode::InsufficientStakedBalance.into()); // Not staked
-    }
-    ctx.accounts.user_bear_balance.request_unstake_time = Clock::get()?.unix_timestamp as u64;
+    require!(ctx.accounts.user_bear_balance.staked > 0, ErrorCode::InsufficientStakedBalance); // // Not enough free bear
+    
+    ctx.accounts.user_bear_balance.request_unstake_time = utils::get_current_timestamp();
+
+    Ok(())
+}
+
+#[cfg(not(feature = "mainnet"))]
+pub fn set_request_exit_island_timestamp(ctx: Context<RequestExitIsland>, timestamp: u64) -> Result<()> {
+    require!(ctx.accounts.user_bear_balance.staked > 0, ErrorCode::InsufficientStakedBalance); // // Not enough free bear
+    
+    ctx.accounts.user_bear_balance.request_unstake_time = timestamp;
 
     Ok(())
 }
 
 pub fn exit_island(ctx: Context<ExitIsland>) -> Result<()> {
-    let now = Clock::get()?.unix_timestamp as u64;
-     if ctx.accounts.user_bear_balance.request_unstake_time + 3 * DAY > now {
-      return Err(ErrorCode::InsufficientBalance.into()); // unstake after 72 hours
-    }
+    let now = utils::get_current_timestamp();
+
+    require!(ctx.accounts.user_bear_balance.request_unstake_time + 3 * DAY < now, ErrorCode::ExitIslandNotAllowed); 
+
     let staked_duration = now - ctx.accounts.user_bear_balance.staked_time;
-
     let mut days = staked_duration / DAY;
-
     if staked_duration % DAY > 0 {
       days += 1;
     }
 
-
     // pay days * 0.1 sol
     let sol_amount = days * LAMPORTS_PER_SOL / 10;
-
-    // let ix = system_instruction::transfer(
-    //   &ctx.accounts.signer.key(),
-    //   &ctx.accounts.game_vault.key(),
-    //   sol_amount,
-    // );
-    // invoke(
-    //   &ix, 
-    //   &[
-    //     ctx.accounts.signer.to_account_info(),
-    //     ctx.accounts.game_vault.to_account_info(),
-    //     ctx.accounts.system_program.to_account_info(),
-    //   ]
-    // )?;
 
     utils::transfer_sol_from_user_to_vault(
       ctx.accounts.signer.to_account_info(), 
@@ -117,10 +118,11 @@ pub fn exit_island(ctx: Context<ExitIsland>) -> Result<()> {
 
     ctx.accounts.user_bear_balance.staked_time = 0;
     ctx.accounts.user_bear_balance.request_unstake_time = 0;
-
     ctx.accounts.user_bear_balance.free = ctx.accounts.user_bear_balance.free.checked_add(ctx.accounts.user_bear_balance.staked).unwrap();
     ctx.accounts.user_bear_balance.staked = 0;
-    ctx.accounts.user_bear_balance.breed_time = Clock::get()?.unix_timestamp as u64;
-
+    ctx.accounts.user_bear_balance.breed_time = now;
+    
+    ctx.accounts.game_state.lp_sol_balance = ctx.accounts.game_state.lp_sol_balance.checked_add(sol_amount).unwrap();
+    
     Ok(())
 }

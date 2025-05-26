@@ -1,86 +1,119 @@
 
+use uint::construct_uint;
+// construct_uint! {
+//     pub struct U128(2);
+// }
+
+construct_uint! {
+    pub struct U256(4);
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Curve;
 
 impl Curve {
-    /// Constant product swap ensures x * y = constant
-    /// The constant product swap calculation, factored out of its class for reuse.
-    ///
-    /// This is guaranteed to work for all values such that:
-    ///  - 1 <= swap_source_amount * swap_destination_amount <= u128::MAX
-    ///  - 1 <= source_amount <= u64::MAX
-    pub fn swap_base_input_without_fees(
-        source_amount: u128,
-        swap_source_amount: u128,
-        swap_destination_amount: u128,
-    ) -> u128 {
-        // (x + delta_x) * (y - delta_y) = x^4 * y
-        // delta_y = (delta_x * y) / (x + delta_x)
-        let numerator = source_amount.checked_mul(swap_destination_amount).unwrap();
-        let denominator = swap_source_amount.checked_add(source_amount).unwrap();
-        let destinsation_amount_swapped = numerator.checked_div(denominator).unwrap();
-        destinsation_amount_swapped
+
+    pub const EXPONENT: u8 = 4; 
+
+    pub fn k(
+        x: u128,
+        y: u128
+    ) -> U256 {
+        // k = x^4 * y
+        let x = U256::from(x);
+        let y = U256::from(y);
+        x.pow(Self::EXPONENT.into()).checked_mul(y).unwrap()
     }
 
-    pub fn swap_base_output_without_fees(
-        destinsation_amount: u128,
-        swap_source_amount: u128,
-        swap_destination_amount: u128,
+    pub fn price(
+        x: u128,
+        y: u128
     ) -> u128 {
-        // (x + delta_x) * (y - delta_y) = x * y
-        // delta_x = (x * delta_y) / (y - delta_y)
-        let numerator = swap_source_amount.checked_mul(destinsation_amount).unwrap();
-        let denominator = swap_destination_amount
-            .checked_sub(destinsation_amount)
-            .unwrap();
-        let (source_amount_swapped, _) = numerator.checked_ceil_div(denominator).unwrap();
-        source_amount_swapped
+        // price = 4y / x
+        let x = U256::from(x);
+        let y = U256::from(y);
+        y.checked_mul(Self::EXPONENT.into()).unwrap().checked_div(x).unwrap().as_u128()
     }
 
-    /// Get the amount of trading tokens for the given amount of pool tokens,
-    /// provided the total trading tokens and supply of pool tokens.
-    ///
-    /// The constant product implementation is a simple ratio calculation for how
-    /// many trading tokens correspond to a certain number of pool tokens
-    pub fn lp_tokens_to_trading_tokens(
-        lp_token_amount: u128,
-        lp_token_supply: u128,
-        swap_token_0_amount: u128,
-        swap_token_1_amount: u128,
-        round_direction: RoundDirection,
-    ) -> Option<TradingTokenResult> {
-        let mut token_0_amount = lp_token_amount
-            .checked_mul(swap_token_0_amount)?
-            .checked_div(lp_token_supply)?;
-        let mut token_1_amount = lp_token_amount
-            .checked_mul(swap_token_1_amount)?
-            .checked_div(lp_token_supply)?;
-        let (token_0_amount, token_1_amount) = match round_direction {
-            RoundDirection::Floor => (token_0_amount, token_1_amount),
-            RoundDirection::Ceiling => {
-                let token_0_remainder = lp_token_amount
-                    .checked_mul(swap_token_0_amount)?
-                    .checked_rem(lp_token_supply)?;
-                // Also check for 0 token A and B amount to avoid taking too much
-                // for tiny amounts of pool tokens.  For example, if someone asks
-                // for 1 pool token, which is worth 0.01 token A, we avoid the
-                // ceiling of taking 1 token A and instead return 0, for it to be
-                // rejected later in processing.
-                if token_0_remainder > 0 && token_0_amount > 0 {
-                    token_0_amount += 1;
-                }
-                let token_1_remainder = lp_token_amount
-                    .checked_mul(swap_token_1_amount)?
-                    .checked_rem(lp_token_supply)?;
-                if token_1_remainder > 0 && token_1_amount > 0 {
-                    token_1_amount += 1;
-                }
-                (token_0_amount, token_1_amount)
-            }
-        };
-        Some(TradingTokenResult {
-            token_0_amount,
-            token_1_amount,
-        })
+    pub fn exact_x_input(
+        x_amount: u128,
+        x: u128,
+        y: u128
+    ) -> u128 {
+        // Constant product swap ensures x^4 * y = constant
+        // (x + x_amount)^4 * (y - y_amount) = x^4 * y
+        // y_amount = y - x^4 * y / (x + x_amount)^4
+        let x_amount = U256::from(x_amount);
+        let x = U256::from(x);
+        let y = U256::from(y);
+
+        let numerator = x.pow(Self::EXPONENT.into()).checked_mul(y).unwrap();
+        let denominator = x.checked_add(x_amount).unwrap().pow(Self::EXPONENT.into());
+        let (mut right, rem) = numerator.div_mod(denominator);
+        if rem > U256::zero() {
+            right = right.checked_add(1u128.into()).unwrap();
+        }
+
+        let y_amount = y.checked_sub(right).unwrap();
+        y_amount.as_u128()
+    }
+
+    pub fn exact_y_input(
+        y_amount: u128,
+        x: u128,
+        y: u128
+    ) -> u128 {
+        // Constant product swap ensures x^4 * y = constant
+        // (x - x_amount)^4 * (y + y_amount) = x^4 * y
+        // x_amount = x - [x^4 * y / (y + y_amount)]^0.25
+        let y_amount = U256::from(y_amount);
+        let x = U256::from(x);
+        let y = U256::from(y);
+
+        let numerator = x.pow(Self::EXPONENT.into()).checked_mul(y).unwrap();
+        let denominator = y.checked_add(y_amount).unwrap();
+        let right = numerator.checked_div(denominator).unwrap().integer_sqrt().integer_sqrt();
+        let y_amount = x.checked_sub(right.checked_add(1.into()).unwrap()).unwrap();
+        y_amount.as_u128()
+    }
+}
+
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::constants::*;
+
+    #[test]
+    fn test_exact_y_input() {
+        let y_amount = LAMPORTS_PER_SOL as u128; // 1 SOL
+        let x = 1000000000u128;
+        let y = 100 * LAMPORTS_PER_SOL as u128;
+
+        // x_amount = x - [x^4 * y / (y + y_amount)]^0.25
+        let x_amount = Curve::exact_y_input(y_amount, x, y);
+        assert_eq!(x_amount, 2484491);
+        
+        let constant_before = Curve::k(x, y);
+        // let constant_after = U256::from(x - x_amount).pow(Curve::EXPONENT.into()).checked_mul(U256::from(y + y_amount)).unwrap();
+        let constant_after = Curve::k(x - x_amount, y + y_amount);
+        println!("constant_before: {}, constant_after: {}", constant_before, constant_after);
+        assert!(constant_after > constant_before);
+    }
+
+    #[test]
+    fn test_exact_x_input() {
+        let x_amount = 1000000 as u128;
+        let x = 1000000000u128;
+        let y = 100 * LAMPORTS_PER_SOL as u128;
+
+        // y_amount = y - x^4 * y / (x + x_amount)^4
+        let y_amount = Curve::exact_x_input(x_amount, x, y);
+        assert_eq!(y_amount, 399001996);
+
+        let constant_before = Curve::k(x, y);
+        let constant_after = Curve::k(x + x_amount, y - y_amount);
+        assert!(constant_after >= constant_before);
+
     }
 }
