@@ -1,4 +1,8 @@
-# template-next-tailwind-counter
+# Hunting Game 
+Hunting Game is a strategic ecosystem simulation blockchain game where hunters hunt bears, while bears freely reproduce.
+
+
+<img src="./public/assets/hunting-game.jpg" height="500" alt="Hunting Game" />
 
 ## Getting Started
 
